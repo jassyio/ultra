@@ -1,6 +1,10 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const dotenv = require("dotenv");
 const User = require("./models/User"); // Import the User model
+
+dotenv.config(); // Load environment variables from .env file
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -8,9 +12,9 @@ const PORT = process.env.PORT || 3001;
 app.use(express.json());
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.log(err));
+  .catch((err) => console.log("MongoDB connection error:", err));
 
 // Root route
 app.get("/", (req, res) => {
