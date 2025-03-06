@@ -12,9 +12,10 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.log(err));
 
-  app.get("/api", (req, res) => {
-    res.send("Backend is running");
-  });
+// Root route
+app.get("/", (req, res) => {
+  res.send("Backend is running");
+});
 
 // POST /api/users - Create a new user
 app.post("/api/users", async (req, res) => {
