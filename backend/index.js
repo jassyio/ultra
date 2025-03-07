@@ -4,6 +4,8 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const authRoutes = require("./routes/authRoutes"); // Import auth routes
 const userRoutes = require("./routes/userRoutes"); // Import user routes
+const chatRoutes = require("./routes/chatRoutes");
+app.use("/api/chats", chatRoutes);
 dotenv.config();
 
 const app = express();
