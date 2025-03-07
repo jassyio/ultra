@@ -2,7 +2,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
-
+const authRoutes = require("./routes/authRoutes"); // Import auth routes
+const userRoutes = require("./routes/userRoutes"); // Import user routes
 dotenv.config();
 
 const app = express();
@@ -17,11 +18,9 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopol
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.log("MongoDB connection error:", err));
 
-// Import routes
-const authRoutes = require("./routes/authRoutes");
-
 // Use routes
 app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes); // Use user routes
 
 // Root route
 app.get("/", (req, res) => {
