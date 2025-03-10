@@ -1,30 +1,74 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import StartPage from "./pages/StartPage";
-import SetupPage from "./pages/SetupPage";
-import ChatPage from "./pages/ChatPage";
-import UpdatesPage from "./pages/UpdatesPage";
-import CommunitiesPage from "./pages/CommunitiesPage";
-import CallsPage from "./pages/CallsPage";
-import SettingsPage from "./pages/SettingsPage";
-import Register from "./components/auth/Register";
-import Login from "./components/auth/Login";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import TopNavbar from './components/layout/TopNavbar';
+import BottomNavbar from './components/layout/BottomNavbar';
+import Login from './components/auth/Login';
+import Register from './components/auth/Register';
+import ChatPage from './pages/ChatPage';
+import UpdatesPage from './pages/UpdatesPage';
+import CallsPage from './pages/CallsPage';
+import StartPage from './pages/StartPage';
+import SetupPage from './pages/SetupPage';
+import RequireAuth from './components/common/RequireAuth';
+
+const Layout = ({ children }) => {
+  const location = useLocation();
+  
+  // Hide Navbar on Start, Login, and Register pages
+  const hideNavbar = ["/", "/login", "/register"].includes(location.pathname);
+
+  return (
+    <>
+      {!hideNavbar && <TopNavbar />}
+      {children}
+      {!hideNavbar && <BottomNavbar />}
+    </>
+  );
+};
 
 const App = () => {
   return (
-    <Routes>
-      <Route path="/" element={<StartPage />} />
-      <Route path="/setup" element={<SetupPage />} />
-      <Route path="/chats" element={<ChatPage />} />
-      <Route path="/updates" element={<UpdatesPage />} />
-      <Route path="/communities" element={<CommunitiesPage />} />
-      <Route path="/calls" element={<CallsPage />} />
-      <Route path="/settings" element={<SettingsPage />} />
-      <Route path="/auth/register" element={<Register />} />
-      <Route path="/auth/login" element={<Login />} />
-
-      {/* Redirect unknown routes to start */}
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
+    <AuthProvider>
+      <ThemeProvider>
+        <Router>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<StartPage />} />
+              <Route path="/setup" element={<SetupPage />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route
+                path="/chat"
+                element={
+                  <RequireAuth>
+                    <ChatPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/updates"
+                element={
+                  <RequireAuth>
+                    <UpdatesPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/calls"
+                element={
+                  <RequireAuth>
+                    <CallsPage />
+                  </RequireAuth>
+                }
+              />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Layout>
+        </Router>
+      </ThemeProvider>
+    </AuthProvider>
   );
 };
 

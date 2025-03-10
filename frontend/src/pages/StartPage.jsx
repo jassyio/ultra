@@ -1,19 +1,19 @@
-import { useNavigate } from "react-router-dom";
+import React from 'react';
+import { Link } from 'react-router-dom';
 
 const StartPage = () => {
-  const navigate = useNavigate();
-
   return (
-    <div className="flex items-center justify-center h-screen bg-gradient-to-r from-purple-700 to-gray-900 text-white">
-      <div className="text-center space-y-6">
-        <h1 className="text-4xl font-bold">Ultra</h1>
-        <button
-          onClick={() => navigate("/auth/login")} // ✅ Redirects to Login Page
-          className="bg-white text-purple-700 px-6 py-3 rounded-lg shadow-lg hover:bg-purple-100 transition"
-        >
-          Start Messaging
-        </button>
+    <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-green-400 to-green-600 text-white">
+      <div className="text-center mb-8">
+        <h1 className="text-5xl font-bold mb-4">Welcome to ULTRA chat</h1>
+        <p className="text-lg">Connect with friends and family seamlessly.</p>
       </div>
+      <Link
+        to="/login"
+        className="px-8 py-4 bg-white text-green-600 font-semibold rounded-full shadow-md hover:bg-gray-100 transition-colors duration-300"
+      >
+        Get Started
+      </Link>
     </div>
   );
 };

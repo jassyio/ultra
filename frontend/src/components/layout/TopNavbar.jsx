@@ -1,23 +1,24 @@
-import { FaSearch, FaEllipsisV } from "react-icons/fa";
-import { NavLink } from "react-router-dom";
+import React, { useContext } from 'react';
+import { AuthContext } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const TopNavbar = () => {
-  return (
-    <nav className="fixed top-0 left-0 w-full bg-gray-900 text-white flex items-center justify-between px-4 py-3 shadow-md">
-      {/* Logo / App Name */}
-      <NavLink to="/" className="text-lg font-bold text-purple-400">
-        UltraChat
-      </NavLink>
+  const { logout, user } = useContext(AuthContext);
+  const navigate = useNavigate();
 
-      {/* Right side icons */}
-      <div className="flex space-x-4">
-        <button className="hover:text-purple-400 transition">
-          <FaSearch size={20} />
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  return (
+    <nav className="bg-gray-800 p-4 text-white flex justify-between">
+      <span>{user ? `Welcome, ${user.username}` : 'WhatsApp Clone'}</span>
+      {user && (
+        <button onClick={handleLogout} className="px-4 py-2 bg-red-600 rounded">
+          Logout
         </button>
-        <button className="hover:text-purple-400 transition">
-          <FaEllipsisV size={20} />
-        </button>
-      </div>
+      )}
     </nav>
   );
 };

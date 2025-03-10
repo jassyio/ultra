@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Add any global styles here */
+
+body {
+  @apply font-sans; /* Use a default font */
+}
+
+/* Custom dark mode styles */
+.dark {
+  background-color: #121212; /* Dark background */
+  color: #e0e0e0; /* Light text */
+}
+
+.dark .border-gray-200 {
+  border-color: #333; /* Darker border in dark mode */
+}
+
+.dark .bg-gray-100 {
+  background-color: #222; /* Darker background for list items */
+}
+
+.dark .hover\:bg-gray-100:hover {
+    background-color: #333;
+}
+
+/* Add more custom styles as needed */

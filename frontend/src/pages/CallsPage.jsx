@@ -1,17 +1,12 @@
-import TopNavbar from "../components/layout/TopNavbar";
-import BottomNavbar from "../components/layout/BottomNavbar";
-import StatusList from "../components/updates/StatusList"; // Ensure this file exists
+import React from 'react';
 
-const UpdatesPage = () => {
+const CallsPage = () => {
   return (
-    <div className="flex flex-col h-screen">
-      <TopNavbar />
-      <div className="flex-1 overflow-auto mt-12">
-        <StatusList />
-      </div>
-      <BottomNavbar />
+    <div>
+      {/* UI for call history */}
+      <p>Calls Page</p>
     </div>
   );
 };
 
-export default UpdatesPage;
+export default CallsPage;
