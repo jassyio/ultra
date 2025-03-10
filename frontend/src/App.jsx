@@ -1,21 +1,20 @@
-import React, { useEffect } from "react";
+import { Route, Routes, Navigate } from "react-router-dom";
+import Login from "./components/auth/Login";
+import Register from "./components/auth/Register";
+import Home from "./pages/Home";
+import { useContext } from "react";
+import { AuthContext } from "./context/AuthContext";
 
-function App() {
-  useEffect(() => {
-    fetch("/api")
-      .then((res) => res.text())
-      .then((data) => console.log(data))
-      .catch((err) => console.error("Error fetching data:", err));
-  }, []);
+const App = () => {
+  const { user } = useContext(AuthContext); // ✅ Ensure AuthContext is not undefined
 
   return (
-    <div className="App">
-      <h1 className="text-3xl font-bold underline">
-        Ultra Messaging App
-      </h1>
-      <p>Check the console for the API response.</p>
-    </div>
+    <Routes>
+      <Route path="/" element={user ? <Home /> : <Navigate to="/login" />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+    </Routes>
   );
-}
+};
 
 export default App;
