@@ -1,5 +1,11 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import TopNavbar from './components/layout/TopNavbar';
@@ -12,12 +18,15 @@ import CallsPage from './pages/CallsPage';
 import StartPage from './pages/StartPage';
 import SetupPage from './pages/SetupPage';
 import RequireAuth from './components/common/RequireAuth';
+import './styles/style.css'; // Import global styles
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  
-  // Hide Navbar on Start, Login, and Register pages
-  const hideNavbar = ["/", "/login", "/register"].includes(location.pathname);
+
+  // Hide Navbar on Start, Login, Register, and Setup pages
+  const hideNavbar = ['/', '/login', '/register', '/setup'].includes(
+    location.pathname
+  );
 
   return (
     <>
