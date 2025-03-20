@@ -1,13 +1,16 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom"; // ✅ Import Router
 import App from "./App";
-import './styles/style.css'; // Ensure this path is correct
-import { AuthProvider } from "./context/AuthContext"; // ✅ Import the provider
+import { AuthProvider } from "./context/AuthContext";
+import { ChatProvider } from "./context/ChatContext"; 
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <AuthProvider> {/* ✅ Wrap App inside AuthProvider */}
-      <App />
+  <BrowserRouter> {/* ✅ Wrap everything in Router */}
+    <AuthProvider>
+      <ChatProvider>
+        <App />
+      </ChatProvider>
     </AuthProvider>
-  </React.StrictMode>
+  </BrowserRouter>
 );

@@ -1,4 +1,3 @@
-// src/layouts/ChatLayout.jsx
 import React from "react";
 import ChatHeader from "../components/chat/ChatHeader";
 import ChatInput from "../components/chat/ChatInput";
