@@ -1,30 +1,39 @@
-import { CameraAlt, Search, MoreVert } from "@mui/icons-material";
-import { AppBar, Toolbar, Typography, IconButton, Box } from "@mui/material";
+import { BottomNavigation, BottomNavigationAction } from "@mui/material";
+import { Chat, Groups, Call, Update } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 
-const TopNavbar = ({ title }) => {
+const BottomNavbar = ({ activeTab, setActiveTab, isChatOpen }) => {
+  const navigate = useNavigate();
+
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+    navigate(`/${newValue.toLowerCase()}`); // Navigate to the selected page
+  };
+
+  // Hide BottomNavbar when a chat is open
+  if (isChatOpen) return null;
+
   return (
-    <AppBar position="fixed" color="default" elevation={1}>
-      <Toolbar sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", px: 2 }}>
-        {/* Dynamic Title (Chat, Updates, Calls, etc.) */}
-        <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: "1.2rem" }}>
-          {title}
-        </Typography>
-
-        {/* Icons with proper spacing */}
-        <Box sx={{ display: "flex", gap: 2 }}>  
-          <IconButton>
-            <CameraAlt fontSize="small" />
-          </IconButton>
-          <IconButton>
-            <Search fontSize="small" />
-          </IconButton>
-          <IconButton>
-            <MoreVert fontSize="small" />
-          </IconButton>
-        </Box>
-      </Toolbar>
-    </AppBar>
+    <BottomNavigation
+      value={activeTab}
+      onChange={handleTabChange}
+      showLabels
+      sx={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        width: "100%",
+        bgcolor: "background.paper",
+        boxShadow: "0 -2px 10px rgba(0,0,0,0.1)",
+        zIndex: 1000,
+      }}
+    >
+      <BottomNavigationAction label="Chats" icon={<Chat fontSize="small" />} value="chat" />
+      <BottomNavigationAction label="Communities" icon={<Groups fontSize="small" />} value="communities" />
+      <BottomNavigationAction label="Calls" icon={<Call fontSize="small" />} value="calls" />
+      <BottomNavigationAction label="Updates" icon={<Update fontSize="small" />} value="updates" />
+    </BottomNavigation>
   );
 };
 
-export default TopNavbar;
+export default BottomNavbar;
