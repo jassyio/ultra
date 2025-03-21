@@ -1,36 +1,58 @@
-// MessageInput.jsx
 import { useState } from "react";
-import { PaperAirplaneIcon, PaperClipIcon, FaceSmileIcon } from "@heroicons/react/24/solid";
+import { Box, TextField, IconButton } from "@mui/material";
+import { Send, AttachFile } from "@mui/icons-material";
 
 const MessageInput = ({ sendMessage }) => {
   const [message, setMessage] = useState("");
 
   const handleSend = () => {
-    if (message.trim()) {
-      sendMessage(message);
-      setMessage("");
-    }
+    if (message.trim() === "") return; // Prevent empty messages
+    const newMsg = {
+      text: message,
+      sender: "you",
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      status: "sent",
+    };
+    sendMessage(newMsg); // Send the message
+    setMessage(""); // Clear input after sending
   };
 
   return (
-    <div className="flex items-center p-3 border-t dark:border-gray-700 bg-gray-100 dark:bg-gray-900">
-      <button className="p-2 text-gray-500 dark:text-gray-400">
-        <FaceSmileIcon className="w-6 h-6" />
-      </button>
-      <button className="p-2 text-gray-500 dark:text-gray-400">
-        <PaperClipIcon className="w-6 h-6" />
-      </button>
-      <input
-        type="text"
-        placeholder="Type a message"
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        padding: "10px",
+        borderTop: "1px solid #ccc",
+        bgcolor: "background.paper",
+      }}
+    >
+      {/* Attach File Icon */}
+      <IconButton sx={{ mr: 1 }}>
+        <AttachFile />
+      </IconButton>
+
+      {/* Message Input */}
+      <TextField
+        fullWidth
+        placeholder="Type a message..."
+        variant="outlined"
+        size="small"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        className="flex-1 p-2 mx-2 rounded-lg bg-white dark:bg-gray-800 border dark:border-gray-700 focus:outline-none"
+        multiline
+        sx={{
+          borderRadius: "20px",
+          bgcolor: "white",
+          flex: 1,
+        }}
       />
-      <button onClick={handleSend} className="p-2 text-blue-500">
-        <PaperAirplaneIcon className="w-6 h-6 rotate-90" />
-      </button>
-    </div>
+
+      {/* Send Button */}
+      <IconButton onClick={handleSend} sx={{ ml: 1 }}>
+        <Send color="primary" />
+      </IconButton>
+    </Box>
   );
 };
 

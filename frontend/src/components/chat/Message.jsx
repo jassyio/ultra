@@ -1,22 +1,42 @@
+import { Box, Typography } from "@mui/material";
 
-
-// Message.jsx
-import { CheckIcon } from "@heroicons/react/24/solid";
-
-const Message = ({ text, sender, time, status }) => {
+const Message = ({ msg }) => {
   return (
-    <div className={`flex flex-col max-w-xs p-2 rounded-md m-1 ${sender === "You" ? "bg-green-500 text-white ml-auto" : "bg-gray-200 dark:bg-gray-700"}`}>
-      <p>{text}</p>
-      <div className="flex justify-between items-center text-xs mt-1 text-gray-400">
-        <span>{time}</span>
-        {sender === "You" && (
-          <span className="flex items-center">
-            <CheckIcon className={`w-4 h-4 ${status === "read" ? "text-blue-500" : "text-gray-400"}`} />
-            <CheckIcon className={`w-4 h-4 ${status === "read" ? "text-blue-500" : "text-gray-400"}`} />
+    <Box
+      sx={{
+        alignSelf: msg.sender === "you" ? "flex-end" : "flex-start",
+        backgroundColor: msg.sender === "you" ? "#007AFF" : "#E5E5EA",
+        color: msg.sender === "you" ? "white" : "black",
+        borderRadius: "12px",
+        p: 1.5,
+        mb: 1,
+        maxWidth: "75%",
+        position: "relative",
+        fontSize: "0.9rem",
+      }}
+    >
+      <Typography variant="body2">{msg.text}</Typography>
+
+      {/* Timestamp & Read Receipts inside the message bubble */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          fontSize: "0.7rem",
+          mt: "5px",
+          color: msg.sender === "you" ? "#d1eaff" : "gray",
+          gap: "4px",
+        }}
+      >
+        <span>{msg.timestamp}</span>
+        {msg.sender === "you" && (
+          <span style={{ fontSize: "0.75rem" }}>
+            {msg.status === "sent" ? "✔️" : msg.status === "delivered" ? "✔✔️" : <span style={{ color: "#34B7F1" }}>✔✔️</span>}
           </span>
         )}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
 

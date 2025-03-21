@@ -1,9 +1,12 @@
 import { BottomNavigation, BottomNavigationAction } from "@mui/material";
 import { Chat, Groups, Call, Update } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import { useContext } from "react";
+import { ChatContext } from "../../context/ChatContext"; // Import ChatContext
 
-const BottomNavbar = ({ activeTab, setActiveTab, isChatOpen }) => {
+const BottomNavbar = ({ activeTab, setActiveTab }) => {
   const navigate = useNavigate();
+  const { selectedChat } = useContext(ChatContext); // Get chat state
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -11,7 +14,7 @@ const BottomNavbar = ({ activeTab, setActiveTab, isChatOpen }) => {
   };
 
   // Hide BottomNavbar when a chat is open
-  if (isChatOpen) return null;
+  if (selectedChat) return null;
 
   return (
     <BottomNavigation
