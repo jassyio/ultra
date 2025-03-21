@@ -13,10 +13,13 @@ import BottomNavbar from "./components/layout/BottomNavbar";
 
 const App = () => {
   const { user } = useContext(AuthContext);
-  const location = useLocation(); // Get current route
-  const [activeTab, setActiveTab] = useState("Chat"); // Default to Chat
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState("Chat");
 
-  // Map route paths to titles for the TopNavbar
+  // Define which pages should have navbars
+  const showNavbars = ["/chat", "/communities", "/calls", "/updates"].includes(location.pathname);
+
+  // Dynamic page title
   const pageTitles = {
     "/chat": "Ultra",
     "/communities": "Communities",
@@ -26,15 +29,15 @@ const App = () => {
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Show Top Navbar if user is authenticated */}
-      {user && (
+      {/* ✅ Only show Top Navbar if user is on Chat or main pages */}
+      {user && showNavbars && (
         <div className="fixed top-0 w-full z-50">
           <TopNavbar title={pageTitles[location.pathname] || "Ultra"} />
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="flex-grow flex items-center justify-center pt-16 pb-16">
+      {/* ✅ Main Content */}
+      <div className={`flex-grow flex items-center justify-center ${showNavbars ? "pt-16 pb-16" : ""}`}>
         <Routes>
           <Route path="/login" element={user ? <Navigate to="/setup" /> : <Login />} />
           <Route path="/register" element={user ? <Navigate to="/setup" /> : <Register />} />
@@ -47,8 +50,8 @@ const App = () => {
         </Routes>
       </div>
 
-      {/* Show Bottom Navbar if user is authenticated */}
-      {user && (
+      {/* ✅ Only show Bottom Navbar if user is on Chat or main pages */}
+      {user && showNavbars && (
         <div className="fixed bottom-0 w-full z-50">
           <BottomNavbar activeTab={activeTab} setActiveTab={setActiveTab} />
         </div>
