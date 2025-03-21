@@ -1,27 +1,37 @@
+import { Box, Button, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import ChatIcon from "@mui/icons-material/Chat";
 
 const StartPage = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gradient-to-b from-blue-500 to-indigo-600 text-white">
-      <motion.div
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="text-center px-6"
+    <Box
+      sx={{
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#075e54",
+        color: "white",
+      }}
+    >
+      <ChatIcon sx={{ fontSize: 80, marginBottom: 2 }} />
+      <Typography variant="h4" sx={{ fontWeight: "bold", marginBottom: 2 }}>
+        Welcome to Ultra
+      </Typography>
+      <Typography variant="body1" sx={{ marginBottom: 4, textAlign: "center", maxWidth: "80%" }}>
+        Secure, fast, and simple messaging for everyone.
+      </Typography>
+      <Button
+        variant="contained"
+        sx={{ backgroundColor: "#25D366", "&:hover": { backgroundColor: "#1ebe5d" } }}
+        onClick={() => navigate("/login")}
       >
-        <h1 className="text-5xl font-bold mb-4">Ultra Messenger</h1>
-        <p className="text-lg mb-6">Stay connected, chat instantly, and experience seamless messaging.</p>
-        <button
-          onClick={() => navigate("/login")}
-          className="bg-white text-blue-600 px-6 py-3 rounded-full text-lg font-semibold shadow-lg hover:bg-gray-200 transition"
-        >
-          Get Started
-        </button>
-      </motion.div>
-    </div>
+        Get Started
+      </Button>
+    </Box>
   );
 };
 
