@@ -1,16 +1,33 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const dotenv = require("dotenv");
 
-const authMiddleware = (req, res, next) => {
-  const token = req.header("Authorization");
-  if (!token) return res.status(401).json({ message: "Access denied. No token provided." });
+dotenv.config();
 
+const authMiddleware = async (req, res, next) => {
   try {
-    const decoded = jwt.verify(token.replace("Bearer ", ""), process.env.JWT_SECRET);
-    req.user = decoded;
+    const token = req.header("Authorization")?.split(" ")[1]; // Extract Bearer token
+
+    if (!token) {
+      return res.status(401).json({ message: "Access Denied: No token provided" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded) {
+      return res.status(401).json({ message: "Access Denied: Invalid token" });
+    }
+
+    // Attach user to request
+    const user = await User.findById(decoded.userId).select("-password");
+    if (!user) {
+      return res.status(401).json({ message: "Access Denied: User not found" });
+    }
+
+    req.user = user;
     next();
-  } catch (err) {
-    console.error("❌ Invalid token:", err);
-    res.status(403).json({ message: "Invalid token" });
+  } catch (error) {
+    console.error("❌ Auth Middleware Error:", error.message);
+    res.status(401).json({ message: "Access Denied: Invalid or expired token" });
   }
 };
 
