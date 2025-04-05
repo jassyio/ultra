@@ -1,24 +1,37 @@
 const nodemailer = require("nodemailer");
+require("dotenv").config();
 
-// Configure Email Transporter
+// ✅ Configure Nodemailer
 const transporter = nodemailer.createTransport({
-  service: "gmail", // You can use other services like SendGrid, Mailgun, etc.
+  service: "gmail", // Or use "Outlook", "Yahoo", etc.
   auth: {
-    user: process.env.EMAIL_USER, // Your email
-    pass: process.env.EMAIL_PASS, // App password (not your real password)
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
 
-const sendVerificationEmail = async (email, otp) => {
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: "Your Verification Code",
-    text: `Your OTP for verification is: ${otp}. This OTP expires in 5 minutes.`,
-  };
+// ✅ Send OTP Email
+const sendOTPEmail = async (email, otp) => {
+  try {
+    console.log("🔹 Sending OTP Email...");
+    console.log("🔹 To:", email);
+    console.log("🔹 OTP:", otp);
 
-  await transporter.sendMail(mailOptions);
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Your OTP Code",
+      text: `Your OTP code is: ${otp}. It expires in 5 minutes.`,
+      html: `<p>Your OTP code is: <strong>${otp}</strong>. It expires in 5 minutes.</p>`,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log("✅ Email sent successfully!");
+    return true;
+  } catch (error) {
+    console.error("❌ Email sending failed:", error.message);
+    return false;
+  }
 };
 
-module.exports = { sendVerificationEmail };
-
+module.exports = { sendOTPEmail };

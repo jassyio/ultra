@@ -11,6 +11,8 @@ import CallsPage from "./components/pages/CallsPage";
 import UpdatesPage from "./components/pages/UpdatesPage";
 import TopNavbar from "./components/layout/TopNavbar";
 import BottomNavbar from "./components/layout/BottomNavbar";
+import react from "react";
+import VerificationPage from "./components/pages/VerificationPage"; // ✅ Add VerificationPage
 
 const App = () => {
   const { user } = useContext(AuthContext);
@@ -54,6 +56,7 @@ const App = () => {
           <Route path="/" element={user ? <Navigate to="/chat" /> : <StartPage />} /> {/* ✅ StartPage as default */}
           <Route path="/login" element={user ? <Navigate to="/setup" /> : <Login />} />
           <Route path="/register" element={user ? <Navigate to="/setup" /> : <Register />} />
+          <Route path="/verification" element={user && !user.isVerified ? <VerificationPage /> : <Navigate to="/setup" />} /> {/* ✅ Verification page */}
           <Route path="/setup" element={user ? <SetupPage /> : <Navigate to="/login" />} />
           <Route path="/chat" element={user ? <ChatPage /> : <Navigate to="/login" />} />
           <Route path="/communities" element={user ? <CommunitiesPage /> : <Navigate to="/login" />} />

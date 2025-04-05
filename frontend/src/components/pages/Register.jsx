@@ -2,20 +2,62 @@ import { useState, useContext } from "react";
 import { Box, TextField, Button, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
+import axios from "axios";
 
 const Register = () => {
-  const [userDetails, setUserDetails] = useState({ name: "", phone: "", password: "" });
-  const { login } = useContext(AuthContext);
+  const [userDetails, setUserDetails] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const { setAuthContext } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     setUserDetails({ ...userDetails, [e.target.name]: e.target.value });
   };
 
-  const handleRegister = () => {
-    // ✅ Allow signup without checking credentials (for testing)
-    login({ phone: userDetails.phone });
-    navigate("/chat"); // Redirect to chat after signup
+  const handleRegister = async (e) => {
+    e.preventDefault();
+
+    if (!userDetails.name || !userDetails.email || !userDetails.phone || !userDetails.password) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
+    // Basic validation for email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(userDetails.email)) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://watsup-6ofq.onrender.com/api/auth/register";
+
+      console.log("Sending request to:", backendUrl);
+
+      const response = await axios.post(backendUrl, userDetails, {
+        withCredentials: true,
+      });
+
+      if (response.status === 200) {
+        const { token } = response.data; // Assuming the token is sent in response
+        setAuthContext({ token }); // Store the token in context
+        navigate("/verification", { state: { email: userDetails.email } });
+      } else {
+        alert("Registration failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Registration failed:", error.response?.data?.message || error.message);
+      alert(error.response?.data?.message || "Registration failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -32,34 +74,59 @@ const Register = () => {
       <Typography variant="h5" sx={{ fontWeight: "bold", marginBottom: 3 }}>
         Create an account
       </Typography>
-      <TextField
-        label="Full Name"
-        name="name"
-        value={userDetails.name}
-        onChange={handleChange}
-        sx={{ width: "300px", marginBottom: 2 }}
-      />
-      <TextField
-        label="Phone Number"
-        name="phone"
-        type="tel"
-        value={userDetails.phone}
-        onChange={handleChange}
-        sx={{ width: "300px", marginBottom: 2 }}
-      />
-      <TextField
-        label="Password"
-        name="password"
-        type="password"
-        value={userDetails.password}
-        onChange={handleChange}
-        sx={{ width: "300px", marginBottom: 2 }}
-      />
-      <Button variant="contained" onClick={handleRegister} sx={{ backgroundColor: "#25D366", width: "300px", marginTop: 2 }}>
-        Sign Up
-      </Button>
+      <form onSubmit={handleRegister}>
+        <TextField
+          label="Full Name"
+          name="name"
+          value={userDetails.name}
+          onChange={handleChange}
+          sx={{ width: "300px", marginBottom: 2 }}
+        />
+        <TextField
+          label="Email Address"
+          name="email"
+          type="email"
+          value={userDetails.email}
+          onChange={handleChange}
+          sx={{ width: "300px", marginBottom: 2 }}
+        />
+        <TextField
+          label="Phone Number"
+          name="phone"
+          type="tel"
+          value={userDetails.phone}
+          onChange={handleChange}
+          sx={{ width: "300px", marginBottom: 2 }}
+        />
+        <TextField
+          label="Password"
+          name="password"
+          type="password"
+          value={userDetails.password}
+          onChange={handleChange}
+          sx={{ width: "300px", marginBottom: 2 }}
+        />
+        <Button
+          variant="contained"
+          type="submit"
+          sx={{
+            backgroundColor: "#25D366",
+            width: "300px",
+            marginTop: 2,
+          }}
+          disabled={loading}
+        >
+          {loading ? "Registering..." : "Sign Up"}
+        </Button>
+      </form>
       <Typography sx={{ marginTop: 2 }}>
-        Already have an account? <span onClick={() => navigate("/login")} style={{ color: "#128C7E", cursor: "pointer" }}>Login</span>
+        Already have an account?{" "}
+        <span
+          onClick={() => navigate("/login")}
+          style={{ color: "#128C7E", cursor: "pointer" }}
+        >
+          Login
+        </span>
       </Typography>
     </Box>
   );
