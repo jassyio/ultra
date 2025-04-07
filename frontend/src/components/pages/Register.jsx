@@ -45,7 +45,7 @@ const Register = () => {
       // Check if OTP was successfully sent
       if (response.status === 200 && response.data.message === "OTP sent to email") {
         alert(response.data.message); // OTP sent
-        // Redirect to verification page with email in state
+        // ONLY CHANGE MADE: Updated navigation to verification page
         navigate("/verification", { state: { email: userDetails.email } });
       } else {
         alert("Registration failed. Please try again.");

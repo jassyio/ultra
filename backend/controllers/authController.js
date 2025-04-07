@@ -81,9 +81,36 @@ const verifyOTP = async (req, res) => {
   }
 };
 
+// ✅ Resend OTP
+const resendOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: "User not found" });
+
+    const otp = generateOTP();
+    user.otp = otp;
+    user.otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiration
+
+    await user.save();
+
+    // Send OTP email
+    const emailSent = await sendOTPEmail(email, otp);
+    if (!emailSent) {
+      return res.status(500).json({ message: "Failed to send OTP email" });
+    }
+
+    res.status(200).json({ message: "New OTP sent to email" });
+  } catch (error) {
+    console.error("❌ Resend OTP Error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 // ✅ Dummy Login (just for example)
 const login = async (req, res) => {
   res.status(200).json({ message: "Login endpoint hit!" });
 };
 
-module.exports = { register, verifyOTP, login };
+module.exports = { register, verifyOTP, login, resendOTP };
