@@ -11,11 +11,10 @@ import CallsPage from "./components/pages/CallsPage";
 import UpdatesPage from "./components/pages/UpdatesPage";
 import TopNavbar from "./components/layout/TopNavbar";
 import BottomNavbar from "./components/layout/BottomNavbar";
-import react from "react";
 import VerificationPage from "./components/pages/VerificationPage"; // ✅ Add VerificationPage
 
 const App = () => {
-  const { user } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext); // assuming 'logout' is defined in AuthContext
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("Chat");
 
@@ -53,16 +52,16 @@ const App = () => {
       {/* ✅ Main Content */}
       <div className={`flex-grow flex items-center justify-center ${showNavbars ? "pt-16 pb-16" : ""}`}>
         <Routes>
-          <Route path="/" element={user ? <Navigate to="/chat" /> : <StartPage />} /> {/* ✅ StartPage as default */}
-          <Route path="/login" element={user ? <Navigate to="/setup" /> : <Login />} />
+          <Route path="/" element={user ? <Navigate to="/chat" /> : <StartPage />} />
+          <Route path="/login" element={user ? <Navigate to="/chat" /> : <Login />} />
           <Route path="/register" element={user ? <Navigate to="/setup" /> : <Register />} />
-          <Route path="/verification" element={user && !user.isVerified ? <VerificationPage /> : <Navigate to="/setup" />} /> {/* ✅ Verification page */}
+          <Route path="/verification" element={user ? <VerificationPage /> : <Navigate to="/login" />} />
           <Route path="/setup" element={user ? <SetupPage /> : <Navigate to="/login" />} />
           <Route path="/chat" element={user ? <ChatPage /> : <Navigate to="/login" />} />
           <Route path="/communities" element={user ? <CommunitiesPage /> : <Navigate to="/login" />} />
           <Route path="/calls" element={user ? <CallsPage /> : <Navigate to="/login" />} />
           <Route path="/updates" element={user ? <UpdatesPage /> : <Navigate to="/login" />} />
-          <Route path="*" element={user ? <Navigate to="/chat" /> : <Navigate to="/" />} /> {/* ✅ Redirect to StartPage if not logged in */}
+          <Route path="*" element={user ? <Navigate to="/chat" /> : <Navigate to="/" />} />
         </Routes>
       </div>
 

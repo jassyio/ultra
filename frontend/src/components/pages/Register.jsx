@@ -27,7 +27,6 @@ const Register = () => {
       return;
     }
 
-    // Basic validation for email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(userDetails.email)) {
       alert("Please enter a valid email address.");
@@ -37,17 +36,16 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || "https://watsup-6ofq.onrender.com/api/auth/register";
-
-      console.log("Sending request to:", backendUrl);
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
       const response = await axios.post(backendUrl, userDetails, {
         withCredentials: true,
       });
 
-      if (response.status === 200) {
-        const { token } = response.data; // Assuming the token is sent in response
-        setAuthContext({ token }); // Store the token in context
+      // Check if OTP was successfully sent
+      if (response.status === 200 && response.data.message === "OTP sent to email") {
+        alert(response.data.message); // OTP sent
+        // Redirect to verification page with email in state
         navigate("/verification", { state: { email: userDetails.email } });
       } else {
         alert("Registration failed. Please try again.");
@@ -104,8 +102,10 @@ const Register = () => {
           type="password"
           value={userDetails.password}
           onChange={handleChange}
+          autoComplete="new-password"
           sx={{ width: "300px", marginBottom: 2 }}
         />
+
         <Button
           variant="contained"
           type="submit"
