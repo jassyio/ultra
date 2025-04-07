@@ -2,6 +2,7 @@ import { useState, useContext } from "react";
 import { Box, TextField, Button, Typography, Checkbox, FormControlLabel } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
+import axios from "axios";
 
 const Login = () => {
   const [credentials, setCredentials] = useState({ phone: "", password: "", rememberMe: false });
@@ -12,10 +13,22 @@ const Login = () => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
   };
 
-  const handleLogin = () => {
-    // ✅ Allow login without checking credentials (for testing)
-    login({ phone: credentials.phone }, credentials.rememberMe);
-    navigate("/chat"); // Redirect to chat after login
+  const handleLogin = async () => {
+    try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const response = await axios.post(`${backendUrl}/api/auth/login`, {
+        email: credentials.phone, // Assuming phone is used as email
+        password: credentials.password,
+      });
+
+      if (response.status === 200) {
+        login(response.data.token, credentials.rememberMe);
+        navigate("/chat"); // Redirect to chat after successful login
+      }
+    } catch (error) {
+      console.error("Login failed:", error.response?.data?.message || error.message);
+      alert(error.response?.data?.message || "Login failed. Please try again.");
+    }
   };
 
   return (

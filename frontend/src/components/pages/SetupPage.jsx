@@ -21,7 +21,8 @@ const SetupPage = () => {
   // Proceed to Chat Page
   const handleNext = () => {
     if (name.trim()) {
-      navigate("/chat"); // This should work if routing is set up properly
+      console.log("Navigating to chat page after setup");
+      navigate("/chat");
     }
   };
 

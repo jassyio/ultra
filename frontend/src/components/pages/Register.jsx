@@ -38,7 +38,7 @@ const Register = () => {
     try {
       const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-      const response = await axios.post(backendUrl, userDetails, {
+      const response = await axios.post(`${backendUrl}/api/auth/register`, userDetails, {
         withCredentials: true,
       });
 

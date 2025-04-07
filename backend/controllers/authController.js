@@ -108,9 +108,36 @@ const resendOTP = async (req, res) => {
   }
 };
 
-// ✅ Dummy Login (just for example)
+// ✅ Login
 const login = async (req, res) => {
-  res.status(200).json({ message: "Login endpoint hit!" });
+  try {
+    const { email, password } = req.body;
+
+    // Check if the user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "User not found. Please register first." });
+    }
+
+    // Check if the user is verified
+    if (!user.isVerified) {
+      return res.status(403).json({ message: "User is not verified. Please verify your account." });
+    }
+
+    // Validate the password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid email or password." });
+    }
+
+    // Generate a token
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+
+    res.status(200).json({ message: "Login successful", token });
+  } catch (error) {
+    console.error("❌ Login Error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
 };
 
 module.exports = { register, verifyOTP, login, resendOTP };

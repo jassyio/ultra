@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Box, TextField, Button, Typography, CircularProgress } from '@mui/material';
+import { AuthContext } from "../../context/AuthContext";
 
 const VerificationPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { verifyUser } = useContext(AuthContext);
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -26,16 +28,21 @@ const VerificationPage = () => {
     setError('');
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL;
-      const response = await axios.post(`${backendUrl}/verify-otp`, {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const response = await axios.post(`${backendUrl}/api/auth/verify-otp`, {
         email,
         otp
       });
 
+      console.log("Response from backend:", response.data);
+
       if (response.status === 200) {
+        verifyUser();
+        console.log("Navigating to setup page with email:", email);
         navigate('/setup', { state: { email } });
       }
     } catch (error) {
+      console.error("Verification failed:", error.response?.data?.message || error.message);
       setError(error.response?.data?.message || 'Verification failed. Please try again.');
     } finally {
       setLoading(false);
@@ -47,8 +54,8 @@ const VerificationPage = () => {
     setCountdown(30);
     
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL;
-      await axios.post(`${backendUrl}/resend-otp`, { email });
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      await axios.post(`${backendUrl}/api/auth/resend-otp`, { email });
       
       const interval = setInterval(() => {
         setCountdown(prev => {

@@ -54,7 +54,9 @@ const App = () => {
           {/* Modified verification route - no user check */}
           <Route path="/verification" element={<VerificationPage />} />
           
-          <Route path="/setup" element={user ? <SetupPage /> : <Navigate to="/login" />} />
+          {/* Temporarily removed user check for setup route */}
+          <Route path="/setup" element={<SetupPage />} />
+          
           <Route path="/chat" element={user ? <ChatPage /> : <Navigate to="/login" />} />
           <Route path="/communities" element={user ? <CommunitiesPage /> : <Navigate to="/login" />} />
           <Route path="/calls" element={user ? <CallsPage /> : <Navigate to="/login" />} />
