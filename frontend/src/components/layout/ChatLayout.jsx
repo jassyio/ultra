@@ -1,19 +1,59 @@
-import React from "react";
-import ChatHeader from "../components/chat/ChatHeader";
-import ChatInput from "../components/chat/ChatInput";
+import { useContext } from "react";
+import { ChatContext } from "../../context/ChatContext";
+import ChatList from "./ChatList";
+import ChatWindow from "./ChatWindow"; // This is the chat display with messages
+import { Box } from "@mui/material";
 
-const ChatLayout = ({ children }) => {
+const ChatLayout = () => {
+  const { selectedChat } = useContext(ChatContext);
+
   return (
-    <div className="flex flex-col h-screen bg-gray-200">
-      {/* Chat Header (Profile, Call Icons, Menu) */}
-      <ChatHeader />
+    <Box
+      sx={{
+        display: "flex",
+        height: "100vh",
+        width: "100%",
+        overflow: "hidden",
+        bgcolor: "background.default",
+      }}
+    >
+      {/* Chat List Sidebar */}
+      <Box
+        sx={{
+          width: { xs: "100%", sm: "35%", md: "30%" },
+          borderRight: "1px solid #e0e0e0",
+          display: { xs: selectedChat ? "none" : "block", sm: "block" },
+        }}
+      >
+        <ChatList />
+      </Box>
 
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-4">{children}</div>
-
-      {/* Chat Input */}
-      <ChatInput />
-    </div>
+      {/* Chat Window Area */}
+      <Box
+        sx={{
+          flex: 1,
+          display: { xs: selectedChat ? "block" : "none", sm: "block" },
+          position: "relative",
+        }}
+      >
+        {selectedChat ? (
+          <ChatWindow />
+        ) : (
+          <Box
+            sx={{
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "text.secondary",
+              fontSize: "1.1rem",
+            }}
+          >
+            Select a chat to start messaging
+          </Box>
+        )}
+      </Box>
+    </Box>
   );
 };
 

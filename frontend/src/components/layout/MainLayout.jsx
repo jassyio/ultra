@@ -1,54 +1,40 @@
-import { useState, useEffect } from "react";
-import Sidebar from "../layout/Sidebar";
-import TopNavbar from "../layout/TopNavbar";
-import BottomNavbar from "../layout/BottomNavbar";
-import ChatList from "../pages/ChatList";
-import ChatWindow from "../pages/ChatWindow";
-import CommunitiesPage from "../pages/CommunitiesPage";
-import CallsPage from "../pages/CallsPage";
-import GroupsPage from "../pages/GroupsPage";
+import { useLocation } from "react-router-dom";
+import { useContext, useEffect, useState } from "react";
+import { AuthContext } from "../../context/AuthContext";
+import { routeConfig } from "../../config/routeConfig";
+import TopNavbar from "./TopNavbar";
+import BottomNavbar from "./BottomNavbar";
 
-const MainLayout = () => {
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
-  const [activeTab, setActiveTab] = useState("chat"); // Default to "chat"
-  const [selectedChat, setSelectedChat] = useState(null); // Track selected chat
+const MainLayout = ({ children }) => {
+  const location = useLocation();
+  const { user } = useContext(AuthContext);
+  const [activeTab, setActiveTab] = useState("Chat");
 
-  // Handle window resize
+  const path = location.pathname;
+  const showNavbars = Object.keys(routeConfig).includes(path);
+  const currentTitle = routeConfig[path]?.title || "Ultra";
+
   useEffect(() => {
-    const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 1024);
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    setActiveTab(routeConfig[path]?.title || "Chat");
+  }, [path]);
 
   return (
-    <div className="flex h-screen">
-      {/* Sidebar (Desktop Only) */}
-      {isDesktop && <Sidebar />}
-
-      {/* Main Content */}
-      <div className="flex flex-col w-full">
-        {/* Fixed Top Navbar */}
-        <TopNavbar title="Chats" selectedChat={selectedChat} setSelectedChat={setSelectedChat} className="fixed top-0 w-full z-50" />
-
-        {/* Page Content - Centered */}
-        <div className="flex-grow flex items-center justify-center mt-16 mb-16">
-          {selectedChat ? (
-            <ChatWindow selectedChat={selectedChat} />
-          ) : (
-            <>
-              {activeTab === "chat" && <ChatList setSelectedChat={setSelectedChat} />}
-              {activeTab === "communities" && <CommunitiesPage />}
-              {activeTab === "calls" && <CallsPage />}
-              {activeTab === "groups" && <GroupsPage />}
-            </>
-          )}
+    <div className="flex flex-col h-screen">
+      {user && showNavbars && (
+        <div className="fixed top-0 w-full z-50">
+          <TopNavbar title={currentTitle} />
         </div>
+      )}
 
-        {/* Fixed Bottom Navbar (Mobile Only) */}
-        {!isDesktop && <BottomNavbar activeTab={activeTab} setActiveTab={setActiveTab} isChatOpen={!!selectedChat} />}
+      <div className={`flex-grow flex items-center justify-center ${showNavbars ? "pt-16 pb-16" : ""}`}>
+        {children}
       </div>
+
+      {user && showNavbars && (
+        <div className="fixed bottom-0 w-full z-50">
+          <BottomNavbar activeTab={activeTab} setActiveTab={setActiveTab} />
+        </div>
+      )}
     </div>
   );
 };

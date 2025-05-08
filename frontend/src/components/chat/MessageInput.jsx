@@ -1,20 +1,53 @@
-import { useState } from "react";
+import { useState, useContext, useEffect } from "react";
 import { Box, TextField, IconButton } from "@mui/material";
 import { Send, AttachFile } from "@mui/icons-material";
+import { SocketContext } from "../../context/SocketContext"; // Import the SocketContext
 
-const MessageInput = ({ sendMessage }) => {
+const MessageInput = ({ chatId }) => {
   const [message, setMessage] = useState("");
+  const [isTyping, setIsTyping] = useState(false); // Track typing status
+  const { socket } = useContext(SocketContext); // Access socket from context
+
+  // Emit typing status after user stops typing for a moment (debounced)
+  useEffect(() => {
+    let typingTimeout;
+
+    if (message.trim()) {
+      setIsTyping(true);
+      typingTimeout = setTimeout(() => {
+        if (socket) {
+          socket.emit("typing", { sender: "you", chatId, isTyping: false });
+          setIsTyping(false); // Stop typing status after user stops typing
+        }
+      }, 1500); // Typing indicator appears after 1.5 seconds of inactivity
+    } else {
+      setIsTyping(false);
+    }
+
+    return () => clearTimeout(typingTimeout);
+  }, [message, socket, chatId]);
 
   const handleSend = () => {
-    if (message.trim() === "") return; // Prevent empty messages
+    if (message.trim() === "") return;
+
     const newMsg = {
       text: message,
       sender: "you",
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       status: "sent",
+      chatId: chatId, // Attach chatId
     };
-    sendMessage(newMsg); // Send the message
-    setMessage(""); // Clear input after sending
+
+    // Emit the message through socket.io
+    socket.emit("sendMessage", newMsg); // Emit message to server
+
+    setMessage(""); // Clear the input
+  };
+
+  const handleTyping = () => {
+    if (socket && message.trim()) {
+      socket.emit("typing", { sender: "you", chatId, isTyping: true }); // Notify the other user that the current user is typing
+    }
   };
 
   return (
@@ -27,7 +60,7 @@ const MessageInput = ({ sendMessage }) => {
         bgcolor: "background.paper",
       }}
     >
-      {/* Attach File Icon */}
+      {/* Attach File Button */}
       <IconButton sx={{ mr: 1 }}>
         <AttachFile />
       </IconButton>
@@ -40,6 +73,12 @@ const MessageInput = ({ sendMessage }) => {
         size="small"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
+        onKeyUp={handleTyping} // Emit typing status when the user types
+        onBlur={() => {
+          if (socket && message.trim()) {
+            socket.emit("typing", { sender: "you", chatId, isTyping: false });
+          }
+        }}
         multiline
         sx={{
           borderRadius: "20px",
