@@ -14,12 +14,11 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Hash password only if modified
+// ✅ Hash password before saving
 UserSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
-const User = mongoose.model("User", UserSchema);
-module.exports = User;
+module.exports = mongoose.model("User", UserSchema);

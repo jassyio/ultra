@@ -1,30 +1,34 @@
 const express = require("express");
-const User = require("../models/User");
+const router = express.Router();
+const {
+  registerUser,
+  loginUser,
+  verifyUser,
+  checkUser, // <- import the function here
+} = require("../controllers/userController");
 const authMiddleware = require("../middleware/authMiddleware");
 
-const router = express.Router();
+// Register, login, verify routes
+router.post("/", registerUser);
+router.post("/login", loginUser);
+router.get("/verify/:token", verifyUser);
 
-// 📝 GET ALL USERS (Protected)
-router.get("/", authMiddleware, async (req, res) => {
-  try {
-    const users = await User.find().select("-password");
-    res.status(200).json(users);
-  } catch (err) {
-    console.error("❌ Error fetching users:", err);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
+// 🔄 IMPORTANT: Place checkUser route BEFORE /:id to avoid conflicts
+router.get("/check", authMiddleware, checkUser);
 
-// 📝 GET A SPECIFIC USER (Protected)
+// Example user fetch by ID
 router.get("/:id", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
-    if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.status(200).json(user);
-  } catch (err) {
-    console.error("❌ Error fetching user:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

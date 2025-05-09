@@ -1,3 +1,4 @@
+// === server.js ===
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
@@ -7,14 +8,15 @@ const { Server } = require("socket.io");
 require("dotenv").config();
 
 const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes"); // ✅ Add this line
 
 const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3001;
 
 const allowedOrigins = [
-  "http://localhost:5173", // Local frontend
-  "https://your-frontend.vercel.app", // Replace with your deployed URL
+  "http://localhost:5173",
+  "https://your-frontend.vercel.app",
 ];
 
 app.use(cors({
@@ -33,7 +35,6 @@ app.use(express.json());
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  tlsAllowInvalidCertificates: true,
 })
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => {
@@ -42,6 +43,7 @@ mongoose.connect(process.env.MONGO_URI, {
   });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes); // ✅ Mount the userRoutes correctly
 
 app.get("/", (req, res) => {
   res.send("🚀 Backend running successfully!");
@@ -54,52 +56,39 @@ const io = new Server(server, {
   },
 });
 
-let onlineUsers = {}; // Track users who are online
+let onlineUsers = {};
 
-// When a user connects
 io.on("connection", (socket) => {
-  console.log(`🔌 New client connected: ${socket.id}`);
+  console.log(`🔌 Client connected: ${socket.id}`);
 
-  // User connects, send online status
   socket.on("userOnline", (userId) => {
     onlineUsers[userId] = socket.id;
-    io.emit("userOnline", userId); // Notify everyone that the user is online
-    console.log(`${userId} is online.`);
+    io.emit("userOnline", userId);
   });
 
-  // User disconnects
   socket.on("disconnect", () => {
     for (const userId in onlineUsers) {
       if (onlineUsers[userId] === socket.id) {
         delete onlineUsers[userId];
-        io.emit("userOffline", userId); // Notify everyone that the user is offline
-        console.log(`${userId} is offline.`);
+        io.emit("userOffline", userId);
         break;
       }
     }
   });
 
-  // Typing status
   socket.on("typing", (data) => {
-    // Broadcast typing status to the recipient
-    io.emit("typing", data); // data includes { userId, chatId }
+    io.emit("typing", data);
   });
 
-  // Handle private messaging
   socket.on("sendMessage", (message) => {
-    const { recipientId } = message; // Assuming message has recipientId for private messaging
-
+    const { recipientId } = message;
     if (onlineUsers[recipientId]) {
-      // Send message to the specific recipient
       io.to(onlineUsers[recipientId]).emit("receiveMessage", message);
-    } else {
-      console.log(`User ${recipientId} is offline. Message not delivered.`);
     }
   });
 
-  // Handle user status request (to get the list of online users)
   socket.on("getOnlineUsers", () => {
-    socket.emit("onlineUsers", Object.keys(onlineUsers)); // Send a list of online users to the requesting user
+    socket.emit("onlineUsers", Object.keys(onlineUsers));
   });
 });
 

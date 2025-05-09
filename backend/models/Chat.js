@@ -8,7 +8,7 @@ const ChatSchema = new mongoose.Schema(
         ref: "User",
         required: true,
       }
-    ], // Supports group or one-on-one chat
+    ], // ✅ Each chat includes both users
     isGroupChat: {
       type: Boolean,
       default: false,

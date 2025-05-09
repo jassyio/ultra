@@ -33,7 +33,6 @@ const ChatList = () => {
             }`}
           >
             <Avatar src={chat.avatar} alt={chat.name} className="w-12 h-12 mr-4" />
-
             <div className="flex-1 min-w-0">
               <h3
                 className={`font-medium truncate ${
@@ -61,7 +60,6 @@ const ChatList = () => {
                 )}
               </p>
             </div>
-
             <div
               className={`text-xs ${
                 selectedChat?.id === chat.id
