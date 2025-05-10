@@ -1,63 +1,43 @@
-import React, { useState, useContext } from "react";
-import { ChatContext } from "../../context/ChatContext";
-import { Box, Typography, Modal, TextField, Button, Backdrop, Fade } from "@mui/material";
+import React, { useState, useContext, useEffect } from "react";
+import { Box, Typography } from "@mui/material";
 import TopNavbar from "../layout/TopNavbar";
 import MessageInput from "../chat/MessageInput";
 import Message from "../chat/Message";
 import FloatingButton from "../common/FloatingButton";
 import AddIcon from "@mui/icons-material/Add";
+import { ChatContext } from "../../context/ChatContext";
+import { AuthContext } from "../../context/AuthContext"; // To get the current user
+import AddChatModal from "../chat/AddChatModal";
+import axios from "axios";
 
 const ChatPage = () => {
-  const { chats, selectedChat, setSelectedChat, setChats } = useContext(ChatContext);
+  const { chats, setChats, selectedChat, setSelectedChat } = useContext(ChatContext);
+  const { user } = useContext(AuthContext); // Get the current logged-in user
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState("");
-  const [invitePrompt, setInvitePrompt] = useState(false);
-
-  // Mock verified users (for now, replace with real verification logic)
-  const verifiedUsers = ["alice@example.com", "bob@example.com"];
-
-  const handleNewChat = () => {
-    setOpen(true);
-    setEmail("");
-    setInvitePrompt(false);
-  };
-
-  const handleEmailSubmit = () => {
-    const emailLower = email.toLowerCase();
-    if (verifiedUsers.includes(emailLower)) {
-      const newChat = {
-        id: Date.now().toString(),
-        name: emailLower,
-        avatar: "/default-avatar.png",
-        messages: [],
-        lastMessage: "",
-      };
-      setChats((prevChats) => [...prevChats, newChat]);
-      setSelectedChat(newChat);
-      setOpen(false);
-    } else {
-      setInvitePrompt(true);
+  // Fetch chats when the component mounts or when navigating back
+  useEffect(() => {
+  const fetchChats = async () => {
+    try {
+      const { data } = await axios.get("http://localhost:3001/api/chats");
+      console.log("Fetched Chats:", data); // Debugging log
+      setChats(data);
+    } catch (error) {
+      console.error("Error fetching chats:", error);
     }
   };
 
-  const handleInvite = () => {
-    alert(`Invitation sent to ${email}`);
-    setOpen(false);
-  };
+  fetchChats();
+}, [setChats]);
 
-  const handleCancelInvite = () => {
-    setOpen(false);
-  };
 
-  const sendMessage = (newMessage) => {
-    if (!selectedChat) return;
-    setSelectedChat((prevChat) => {
-      const updatedChat = { ...prevChat };
-      if (!updatedChat.messages) updatedChat.messages = [];
-      updatedChat.messages.push(newMessage);
-      return updatedChat;
-    });
+  // Function to update the last message in the chat list
+  const updateLastMessage = (chatId, message) => {
+    setChats((prevChats) =>
+      prevChats.map((chat) =>
+        chat._id === chatId ? { ...chat, lastMessage: message } : chat
+      )
+    );
   };
 
   return (
@@ -66,118 +46,91 @@ const ChatPage = () => {
 
       {!selectedChat ? (
         <Box sx={{ flex: 1, overflowY: "auto", p: 1, mt: "48px" }}>
-          {chats?.length > 0 ? (
-            chats.map((chat) => (
-              <Box
-                key={chat.id}
-                onClick={() => setSelectedChat(chat)}
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  padding: "10px",
-                  borderBottom: "1px solid #ccc",
-                  cursor: "pointer",
-                }}
-              >
-                <img
-                  src={chat.avatar}
-                  alt={chat.name}
-                  style={{ width: 40, height: 40, borderRadius: "50%" }}
-                />
-                <Box sx={{ marginLeft: 2 }}>
-                  <Typography variant="body1" sx={{ fontWeight: "bold" }}>
-                    {chat.name}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: "gray" }}>
-                    {chat.lastMessage}
-                  </Typography>
-                </Box>
-              </Box>
-            ))
+          {chats.length > 0 ? (
+            chats.map((chat, index) => {
+  console.log("Chat:", chat);
+  console.log("Participants:", chat?.participants);
+
+  const participant =
+    chat?.participants?.length > 1
+      ? chat?.participants?.find((p) => p._id !== user?.id)
+      : null;
+
+  console.log("Participant:", participant);
+
+  return (
+    <Box
+      key={chat?._id || chat?.id || index}
+      onClick={() => setSelectedChat(chat)}
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        padding: "10px",
+        borderBottom: "1px solid #ccc",
+        cursor: "pointer",
+      }}
+    >
+      <img
+        src={participant?.avatar || "/default-avatar.png"} // Fallback to default avatar
+        alt={participant?.name || "Unnamed User"} // Fallback to "Unnamed User"
+        style={{ width: 40, height: 40, borderRadius: "50%" }}
+      />
+      <Box sx={{ ml: 2 }}>
+        <Typography sx={{ fontWeight: "bold" }}>
+          {participant?.name || "Unnamed User"} {/* Fallback for missing name */}
+        </Typography>
+        <Typography sx={{ color: "gray" }}>
+          {chat?.lastMessage?.content || "No messages yet"} {/* Fallback for missing lastMessage */}
+        </Typography>
+      </Box>
+    </Box>
+              );
+            })
           ) : (
-            <Typography sx={{ textAlign: "center", mt: 2 }}>No chats available</Typography>
+            <Typography sx={{ textAlign: "center", mt: 2 }}>
+              No chats available
+            </Typography>
           )}
         </Box>
       ) : (
-        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", mt: "48px", overflowY: "auto" }}>
-          <Box sx={{ flex: 1, overflowY: "auto", p: 2, display: "flex", flexDirection: "column" }}>
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            mt: "48px",
+            overflowY: "auto",
+          }}
+        >
+          <Box sx={{ flex: 1, p: 2, display: "flex", flexDirection: "column" }}>
             {selectedChat.messages?.length > 0 ? (
-              selectedChat.messages.map((msg, index) => <Message key={index} msg={msg} />)
+              selectedChat.messages.map((msg, i) => (
+                <Message
+                  key={i}
+                  msg={msg}
+                  onSendMessage={(message) =>
+                    updateLastMessage(selectedChat._id, message)
+                  }
+                />
+              ))
             ) : (
-              <Typography sx={{ textAlign: "center", mt: 2 }}>No messages yet</Typography>
+              <Typography sx={{ textAlign: "center", mt: 2 }}>
+                No messages yet
+              </Typography>
             )}
           </Box>
-
-          <MessageInput sendMessage={sendMessage} />
+          <MessageInput
+            sendMessage={(msg) => {
+              // Update context here or via socket
+              updateLastMessage(selectedChat._id, msg);
+            }}
+          />
         </Box>
       )}
 
-      {/* Floating Button */}
-      <FloatingButton icon={<AddIcon />} onClick={handleNewChat} />
+      <FloatingButton icon={<AddIcon />} onClick={() => setModalOpen(true)} />
 
-      {/* New Chat Modal */}
-      <Modal
-        open={open}
-        onClose={() => setOpen(false)}
-        closeAfterTransition
-        slots={{ backdrop: Backdrop }}
-        slotProps={{
-          backdrop: { timeout: 500, sx: { zIndex: 5 } }, // Set zIndex for the backdrop to ensure button is on top
-        }}
-      >
-        <Fade in={open}>
-          <Box
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              bgcolor: "background.paper",
-              borderRadius: 2,
-              boxShadow: 24,
-              p: 4,
-              width: 300,
-              zIndex: 10, // Higher z-index for modal content
-            }}
-          >
-            <Typography variant="h6" mb={2}>
-              Start New Chat
-            </Typography>
-            <TextField
-              fullWidth
-              label="Enter user email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              variant="outlined"
-              margin="normal"
-            />
-            {invitePrompt ? (
-              <>
-                <Typography variant="body2" color="textSecondary" mt={1}>
-                  User not found. Invite to join?
-                </Typography>
-                <Box mt={2} display="flex" justifyContent="space-between">
-                  <Button onClick={handleInvite} color="primary" variant="contained">
-                    Invite
-                  </Button>
-                  <Button onClick={handleCancelInvite} color="secondary" variant="outlined">
-                    Cancel
-                  </Button>
-                </Box>
-              </>
-            ) : (
-              <Button
-                onClick={handleEmailSubmit}
-                variant="contained"
-                fullWidth
-                sx={{ mt: 2 }}
-              >
-                Start Chat
-              </Button>
-            )}
-          </Box>
-        </Fade>
-      </Modal>
+      <AddChatModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </Box>
   );
 };

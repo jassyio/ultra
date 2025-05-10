@@ -1,4 +1,3 @@
-// === server.js ===
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
@@ -8,7 +7,9 @@ const { Server } = require("socket.io");
 require("dotenv").config();
 
 const authRoutes = require("./routes/authRoutes");
-const userRoutes = require("./routes/userRoutes"); // ✅ Add this line
+const userRoutes = require("./routes/userRoutes");
+const contactRoutes = require("./routes/contactRoutes");  // ← new
+const chatRoutes = require("./routes/chatRoutes");        // ← new
 
 const app = express();
 const server = http.createServer(app);
@@ -32,18 +33,11 @@ app.use(cors({
 
 app.use(express.json());
 
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => {
-    console.error("❌ MongoDB connection error:", err);
-    process.exit(1);
-  });
-
+// Mount your routes here:
 app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes); // ✅ Mount the userRoutes correctly
+app.use("/api/users", userRoutes);
+app.use("/api/contacts", contactRoutes);  // ← contacts endpoint
+app.use("/api/chats", chatRoutes);        // ← chats endpoint
 
 app.get("/", (req, res) => {
   res.send("🚀 Backend running successfully!");
@@ -91,6 +85,16 @@ io.on("connection", (socket) => {
     socket.emit("onlineUsers", Object.keys(onlineUsers));
   });
 });
+
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch((err) => {
+    console.error("❌ MongoDB connection error:", err);
+    process.exit(1);
+  });
 
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

@@ -1,23 +1,23 @@
 const express = require("express");
 const router = express.Router();
+const User = require("../models/User");
 const {
   registerUser,
   loginUser,
   verifyUser,
-  checkUser, // <- import the function here
+  checkUser,
 } = require("../controllers/userController");
-const authMiddleware = require("../middleware/authMiddleware");
 
 // Register, login, verify routes
 router.post("/", registerUser);
 router.post("/login", loginUser);
 router.get("/verify/:token", verifyUser);
 
-// 🔄 IMPORTANT: Place checkUser route BEFORE /:id to avoid conflicts
-router.get("/check", authMiddleware, checkUser);
+// Check if a user exists by email (no auth required)
+router.get("/check", checkUser);
 
-// Example user fetch by ID
-router.get("/:id", authMiddleware, async (req, res) => {
+// Example: Get user by ID (no auth middleware for this route)
+router.get("/:id", async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
 
