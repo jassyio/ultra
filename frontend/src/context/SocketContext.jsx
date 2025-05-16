@@ -1,95 +1,229 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, useContext, useRef } from "react";
+import { AuthContext } from "./AuthContext";
+import { ChatContext } from "./ChatContext";
 import io from "socket.io-client";
 
-// Create the Socket Context
 export const SocketContext = createContext();
 
-// Your backend WebSocket server URL
 const SOCKET_SERVER_URL = "http://localhost:3001";
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
-  const [messages, setMessages] = useState({});  // Change to object to store messages by chatId
+  const [messages, setMessages] = useState({});
+  const [isConnected, setIsConnected] = useState(false);
+  const { user } = useContext(AuthContext);
+  const { updateChatWithNewMessage } = useContext(ChatContext);
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
 
   useEffect(() => {
-    // Connect to the Socket.IO server
-    const newSocket = io(SOCKET_SERVER_URL, {
-      transports: ["websocket"],
-      withCredentials: true, // Useful if the server uses authentication
+    if (!user?.id) return;
+
+    let newSocket;
+    let reconnectTimer;
+
+    const connectSocket = () => {
+      const token = localStorage.getItem('token');
+      if (!user?.id || !token) return null;
+      if (reconnectAttempts.current >= maxReconnectAttempts) return null;
+      return io(SOCKET_SERVER_URL, {
+        transports: ["websocket"],
+        withCredentials: true,
+        auth: { userId: user.id, token },
+        reconnection: false
+      });
+    };
+
+    newSocket = connectSocket();
+    if (!newSocket) return;
+
+    newSocket.on("connect", () => {
+      setIsConnected(true);
+      reconnectAttempts.current = 0;
+      if (user?.id) newSocket.emit("userOnline", user.id);
+    });
+
+    newSocket.on("disconnect", () => {
+      setIsConnected(false);
+      if (reconnectAttempts.current < maxReconnectAttempts) {
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000);
+        reconnectTimer = setTimeout(() => {
+          reconnectAttempts.current += 1;
+          if (socket) socket.disconnect();
+          setSocket(null);
+        }, delay);
+      }
+    });
+
+    newSocket.on("connect_error", (error) => {
+      setIsConnected(false);
+      if (reconnectAttempts.current < maxReconnectAttempts) {
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000);
+        reconnectTimer = setTimeout(() => {
+          reconnectAttempts.current += 1;
+          if (socket) socket.disconnect();
+          setSocket(null);
+        }, delay);
+      }
+    });
+
+    // Handle receiveMessage
+    newSocket.on("receiveMessage", (message) => {
+      setMessages(prevMessages => {
+        const chatMessages = prevMessages[message.chatId] || [];
+        let replaced = false;
+        const updatedMessages = chatMessages.map(msg => {
+          if (msg._id === message._id) {
+            replaced = true;
+            return { ...message };
+          }
+          return msg;
+        });
+        if (!replaced && !updatedMessages.some(msg => msg._id === message._id)) {
+          updatedMessages.push({ ...message });
+        }
+        return {
+          ...prevMessages,
+          [message.chatId]: updatedMessages
+        };
+      });
+      updateChatWithNewMessage && updateChatWithNewMessage(message.chatId, message);
+
+      // If the message is not from me, emit delivered status
+      if (message.sender !== user.id && message.status !== "delivered") {
+        socket.emit("messageDelivered", {
+          messageId: message._id,
+          chatId: message.chatId
+        });
+      }
+    });
+
+    // Handle messageSent (confirmation from server)
+    newSocket.on("messageSent", (message) => {
+      setMessages(prevMessages => {
+        const chatMessages = prevMessages[message.chatId] || [];
+        let replaced = false;
+        const updatedMessages = chatMessages.map(msg => {
+          if (msg._id === message._id) {
+            replaced = true;
+            return { ...message };
+          }
+          return msg;
+        });
+        if (!replaced && !updatedMessages.some(msg => msg._id === message._id)) {
+          updatedMessages.push({ ...message });
+        }
+        return {
+          ...prevMessages,
+          [message.chatId]: updatedMessages
+        };
+      });
+      updateChatWithNewMessage && updateChatWithNewMessage(message.chatId, message);
+    });
+
+    // Handle messageDelivered (update status to delivered)
+    newSocket.on("messageDelivered", ({ messageId, chatId }) => {
+      setMessages(prevMessages => {
+        const chatMessages = prevMessages[chatId] || [];
+        const updatedMessages = chatMessages.map(msg =>
+          msg._id === messageId ? { ...msg, status: "delivered" } : msg
+        );
+        return {
+          ...prevMessages,
+          [chatId]: updatedMessages
+        };
+      });
+    });
+
+    // Handle messageRead (update status to read)
+    newSocket.on("messageRead", ({ messageId, chatId }) => {
+      setMessages(prevMessages => {
+        const chatMessages = prevMessages[chatId] || [];
+        const updatedMessages = chatMessages.map(msg =>
+          msg._id === messageId ? { ...msg, status: "read" } : msg
+        );
+        return {
+          ...prevMessages,
+          [chatId]: updatedMessages
+        };
+      });
     });
 
     setSocket(newSocket);
 
-    // Listen for incoming messages
-    newSocket.on("receiveMessage", (message) => {
-      console.log("📨 New message received:", message);
-      // Store only necessary message data
-      const cleanedMessage = {
-        _id: message._id,
-        content: message.content,
-        sender: message.sender,
-        chatId: message.chatId,
-        createdAt: message.createdAt
-      };
-      setMessages((prevMessages) => ({
-        ...prevMessages,
-        [message.chatId]: [...(prevMessages[message.chatId] || []), cleanedMessage]
-      }));
-    });
-
-    // Handle connection errors
-    newSocket.on("connect_error", (err) => {
-      console.error("❌ Socket connection error:", err);
-    });
-
-    // Handle reconnect attempts
-    newSocket.on("reconnect", () => {
-      console.log("🔄 Reconnected to the socket server");
-    });
-
-    newSocket.on("reconnect_error", (err) => {
-      console.error("❌ Reconnection failed:", err);
-    });
-
-    // Clean up on unmount
     return () => {
-      newSocket.off("receiveMessage");
-      newSocket.off("connect_error");
-      newSocket.off("reconnect");
-      newSocket.off("reconnect_error");
-      newSocket.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (newSocket) newSocket.disconnect();
     };
-  }, []);
+  }, [user, updateChatWithNewMessage]);
 
-  // Function to add a new message locally
-  const addMessage = (chatId, message) => {
-    // Store only necessary message data
-    const cleanedMessage = {
-      _id: message._id,
-      content: message.content,
-      sender: message.sender,
-      chatId: message.chatId,
-      createdAt: message.createdAt,
-      pending: message.pending
+  // Send message with status "sent"
+  const sendMessage = (chatId, message) => {
+    if (!socket || !isConnected) {
+      console.error("❌ Cannot send message: Socket not connected");
+      return null;
+    }
+    if (!user?.id) {
+      console.error("❌ Cannot send message: No user authenticated");
+      return null;
+    }
+    const pendingMessage = {
+      _id: Date.now().toString(),
+      content: message.content.trim(),
+      sender: user.id,
+      chatId: chatId,
+      createdAt: new Date().toISOString(),
+      status: "sent"
     };
-    setMessages((prevMessages) => ({
-      ...prevMessages,
-      [chatId]: [...(prevMessages[chatId] || []), cleanedMessage]
-    }));
+    setMessages(prevMessages => {
+      const chatMessages = prevMessages[chatId] || [];
+      return {
+        ...prevMessages,
+        [chatId]: [...chatMessages, pendingMessage]
+      };
+    });
+    socket.emit("sendMessage", {
+      content: message.content.trim(),
+      chatId: chatId,
+      sender: user.id
+    });
+    updateChatWithNewMessage && updateChatWithNewMessage(chatId, pendingMessage);
+    return pendingMessage;
   };
 
-  // Get messages for a specific chat
-  const getChatMessages = (chatId) => {
-    return messages[chatId] || [];
+  // Call this when user opens a chat to mark all as read
+  const markMessagesAsRead = (chatId) => {
+    if (!socket || !isConnected) return;
+    const chatMessages = messages[chatId] || [];
+    chatMessages.forEach(msg => {
+      if (msg.sender !== user.id && msg.status !== "read") {
+        socket.emit("messageRead", {
+          messageId: msg._id,
+          chatId: chatId
+        });
+      }
+    });
+  };
+
+  const joinChatRoom = (chatId) => {
+    if (!socket || !isConnected) return;
+    socket.emit("joinRoom", chatId);
+  };
+
+  const leaveChatRoom = (chatId) => {
+    if (!socket || !isConnected) return;
+    socket.emit("leaveRoom", chatId);
   };
 
   return (
-    <SocketContext.Provider value={{ 
-      socket, 
+    <SocketContext.Provider value={{
+      socket,
+      isConnected,
       messages,
-      addMessage,
-      getChatMessages,
-      setMessages 
+      sendMessage,
+      joinChatRoom,
+      leaveChatRoom,
+      markMessagesAsRead // <-- Export this for use in your chat UI
     }}>
       {children}
     </SocketContext.Provider>

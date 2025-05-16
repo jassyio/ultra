@@ -16,6 +16,7 @@ import { ChatContext } from "../../context/ChatContext";
 import { AuthContext } from "../../context/AuthContext";
 import { SocketContext } from "../../context/SocketContext";
 import AddChatModal from "../chat/AddChatModal";
+import ChatWindow from "../chat/ChatWindow";
 
 const ChatPage = () => {
   const {
@@ -25,10 +26,9 @@ const ChatPage = () => {
     loading,
     error,
     clearError,
-    addMessageToChat,
   } = useContext(ChatContext);
   const { user } = useContext(AuthContext);
-  const { socket, getChatMessages, addMessage } = useContext(SocketContext);
+  const { socket } = useContext(SocketContext);
   const [modalOpen, setModalOpen] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
 
@@ -45,33 +45,12 @@ const ChatPage = () => {
     }
   }, [socket]);
 
-  const currentMessages = selectedChat
-    ? getChatMessages(selectedChat._id)
-    : [];
-
-  // ✅ Get chat partner from chat list like in ChatList.jsx
+  // Get chat partner from chat list
   const chatPartner =
     selectedChat &&
     chats.find((c) => c._id === selectedChat._id)?.participants.find(
       (p) => p._id !== user?.id
     );
-
-  const handleSendMessage = async (chatId, content) => {
-    try {
-      const tempMessage = {
-        content,
-        sender: user.id,
-        chatId,
-        createdAt: new Date().toISOString(),
-        pending: true,
-      };
-      addMessage(chatId, tempMessage);
-      const savedMessage = await addMessageToChat(chatId, content);
-      addMessage(chatId, { ...savedMessage, pending: false });
-    } catch (error) {
-      console.error("Failed to send message:", error);
-    }
-  };
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
@@ -84,7 +63,16 @@ const ChatPage = () => {
         onBack={() => setSelectedChat(null)}
       />
 
-      <Box sx={{ flex: 1, position: "relative", mt: "48px" }}>
+      <Box 
+        sx={{ 
+          flex: 1, 
+          position: "relative", 
+          mt: "48px",
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}
+      >
         {loading && (
           <Box
             sx={{
@@ -171,45 +159,8 @@ const ChatPage = () => {
             )}
           </Box>
         ) : (
-          <Box
-            sx={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              height: "calc(100vh - 48px)",
-            }}
-          >
-            <Box
-              sx={{
-                flex: 1,
-                p: 2,
-                display: "flex",
-                flexDirection: "column",
-                overflowY: "auto",
-              }}
-            >
-              {currentMessages.length > 0 ? (
-                currentMessages.map((msg, i) => (
-                  <Message
-                    key={`msg-${msg._id || msg.createdAt}-${i}`}
-                    message={msg}
-                    isOwnMessage={msg.sender === user?.id}
-                    isPending={msg.pending}
-                  />
-                ))
-              ) : (
-                <Typography sx={{ textAlign: "center", mt: 2, color: "gray" }}>
-                  No messages yet. Start the conversation!
-                </Typography>
-              )}
-            </Box>
-            <MessageInput
-              chatId={selectedChat._id}
-              onMessageSent={(content) =>
-                handleSendMessage(selectedChat._id, content)
-              }
-              disabled={!socketConnected}
-            />
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <ChatWindow />
           </Box>
         )}
       </Box>

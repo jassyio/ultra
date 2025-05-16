@@ -1,20 +1,20 @@
 import { useState, useContext, useEffect } from "react";
-import { Box, TextField, IconButton } from "@mui/material";
+import { Box, TextField, IconButton, CircularProgress } from "@mui/material";
 import { Send, AttachFile } from "@mui/icons-material";
 import { SocketContext } from "../../context/SocketContext";
 import { AuthContext } from "../../context/AuthContext";
 
-const MessageInput = ({ chatId, onMessageSent }) => {
+const MessageInput = ({ chatId, disabled }) => {
   const [message, setMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const { socket } = useContext(SocketContext);
+  const [isSending, setIsSending] = useState(false);
+  const { socket, isConnected, sendMessage } = useContext(SocketContext);
   const { user } = useContext(AuthContext);
 
-  // Emit typing status after user stops typing for a moment (debounced)
   useEffect(() => {
     let typingTimeout;
 
-    if (message.trim() && socket) {
+    if (message.trim() && socket?.connected) {
       setIsTyping(true);
       socket.emit("typing", { 
         sender: user?.name || "User", 
@@ -23,16 +23,18 @@ const MessageInput = ({ chatId, onMessageSent }) => {
       });
 
       typingTimeout = setTimeout(() => {
-        socket.emit("typing", { 
-          sender: user?.name || "User", 
-          chatId, 
-          isTyping: false 
-        });
+        if (socket?.connected) {
+          socket.emit("typing", { 
+            sender: user?.name || "User", 
+            chatId, 
+            isTyping: false 
+          });
+        }
         setIsTyping(false);
       }, 1500);
     } else {
       setIsTyping(false);
-      if (socket) {
+      if (socket?.connected) {
         socket.emit("typing", { 
           sender: user?.name || "User", 
           chatId, 
@@ -41,15 +43,33 @@ const MessageInput = ({ chatId, onMessageSent }) => {
       }
     }
 
-    return () => clearTimeout(typingTimeout);
+    return () => {
+      clearTimeout(typingTimeout);
+      if (socket?.connected) {
+        socket.emit("typing", { 
+          sender: user?.name || "User", 
+          chatId, 
+          isTyping: false 
+        });
+      }
+    };
   }, [message, socket, chatId, user]);
 
-  const handleSend = () => {
-    if (message.trim() === "") return;
+  const handleSend = async () => {
+    if (message.trim() === "" || !isConnected || isSending) return;
 
-    // Call the onMessageSent callback with the message content
-    onMessageSent(message.trim());
-    setMessage(""); // Clear the input
+    const messageContent = message.trim();
+    setIsSending(true);
+    setMessage(""); // Clear input for UX
+
+    try {
+      sendMessage(chatId, { content: messageContent });
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      setMessage(messageContent); // Restore input if failed
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -64,47 +84,44 @@ const MessageInput = ({ chatId, onMessageSent }) => {
       sx={{
         display: "flex",
         alignItems: "center",
-        padding: "10px",
-        borderTop: "1px solid #ccc",
-        bgcolor: "background.paper",
+        gap: 1,
+        p: 2,
+        borderTop: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.paper"
       }}
-      className="dark:bg-gray-800 dark:border-gray-700"
     >
-      {/* Attach File Button */}
-      <IconButton sx={{ mr: 1 }} className="text-gray-600 dark:text-gray-400">
+      <IconButton
+        color="primary"
+        aria-label="attach file"
+        disabled={!isConnected || isSending || disabled}
+      >
         <AttachFile />
       </IconButton>
-
-      {/* Message Input */}
+      
       <TextField
         fullWidth
-        placeholder="Type a message..."
-        variant="outlined"
-        size="small"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        onKeyDown={handleKeyPress}
         multiline
         maxRows={4}
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        onKeyPress={handleKeyPress}
+        placeholder={isConnected ? "Type a message..." : "Connecting..."}
+        disabled={!isConnected || isSending || disabled}
         sx={{
-          borderRadius: "20px",
-          bgcolor: "white",
-          flex: 1,
           "& .MuiOutlinedInput-root": {
-            borderRadius: "20px",
+            borderRadius: 2
           }
         }}
-        className="dark:bg-gray-700 dark:text-white"
       />
-
-      {/* Send Button */}
-      <IconButton 
-        onClick={handleSend} 
-        sx={{ ml: 1 }}
-        disabled={!message.trim()}
-        className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-500"
+      
+      <IconButton
+        color="primary"
+        aria-label="send message"
+        onClick={handleSend}
+        disabled={!message.trim() || !isConnected || isSending || disabled}
       >
-        <Send />
+        {isSending ? <CircularProgress size={24} /> : <Send />}
       </IconButton>
     </Box>
   );

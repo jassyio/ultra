@@ -24,13 +24,29 @@ const StartPage = () => {
       <Typography variant="body1" sx={{ marginBottom: 4, textAlign: "center", maxWidth: "80%" }}>
         Secure, fast, and simple messaging for everyone.
       </Typography>
-      <Button
-        variant="contained"
-        sx={{ backgroundColor: "#25D366", "&:hover": { backgroundColor: "#1ebe5d" } }}
-        onClick={() => navigate("/login")}
-      >
-        Get Started
-      </Button>
+      <Box sx={{ display: 'flex', gap: 2 }}>
+        <Button
+          variant="contained"
+          sx={{ backgroundColor: "#25D366", "&:hover": { backgroundColor: "#1ebe5d" } }}
+          onClick={() => navigate("/login")}
+        >
+          Login
+        </Button>
+        <Button
+          variant="outlined"
+          sx={{ 
+            color: "white", 
+            borderColor: "white",
+            "&:hover": { 
+              borderColor: "white",
+              backgroundColor: "rgba(255, 255, 255, 0.1)"
+            } 
+          }}
+          onClick={() => navigate("/register")}
+        >
+          Sign Up
+        </Button>
+      </Box>
     </Box>
   );
 };

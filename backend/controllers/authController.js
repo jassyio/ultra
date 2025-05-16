@@ -74,7 +74,15 @@ const verifyOTP = async (req, res) => {
 
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
-    res.status(200).json({ message: "OTP verified", token });
+    res.status(200).json({ 
+      message: "OTP verified", 
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name
+      }
+    });
   } catch (error) {
     console.error("❌ Verify OTP Error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
@@ -133,7 +141,16 @@ const login = async (req, res) => {
     // Generate a token
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
-    res.status(200).json({ message: "Login successful", token });
+    // Send response with user data
+    res.status(200).json({ 
+      message: "Login successful", 
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name
+      }
+    });
   } catch (error) {
     console.error("❌ Login Error:", error);
     res.status(500).json({ message: "Server error", error: error.message });

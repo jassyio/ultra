@@ -47,17 +47,8 @@ const Login = () => {
         throw new Error("No token received from server");
       }
     } catch (error) {
-      console.error("Login error details:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
-      
-      setError(
-        error.response?.data?.message || 
-        error.message || 
-        "Login failed. Please try again."
-      );
+      console.error("Login error:", error);
+      setError(error.response?.data?.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -65,81 +56,72 @@ const Login = () => {
 
   return (
     <Box
-      component="form"
-      onSubmit={handleLogin}
       sx={{
+        height: "100vh",
         display: "flex",
         flexDirection: "column",
+        justifyContent: "center",
         alignItems: "center",
-        maxWidth: 400,
-        mx: "auto",
-        p: 3,
+        backgroundColor: "#fff",
       }}
     >
-      <Typography variant="h4" component="h1" gutterBottom>
-        Login
+      <Typography variant="h5" sx={{ fontWeight: "bold", marginBottom: 3 }}>
+        Welcome Back
       </Typography>
-
-      {error && (
-        <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      <TextField
-        fullWidth
-        label="Email"
-        name="phone"
-        type="email"
-        value={credentials.phone}
-        onChange={handleChange}
-        margin="normal"
-        required
-        disabled={loading}
-        error={!!error && !credentials.phone}
-        helperText={!!error && !credentials.phone ? "Email is required" : ""}
-      />
-
-      <TextField
-        fullWidth
-        label="Password"
-        name="password"
-        type="password"
-        value={credentials.password}
-        onChange={handleChange}
-        margin="normal"
-        required
-        disabled={loading}
-        error={!!error && !credentials.password}
-        helperText={!!error && !credentials.password ? "Password is required" : ""}
-      />
-
-      <FormControlLabel
-        control={
-          <Checkbox
-            name="rememberMe"
-            checked={credentials.rememberMe}
-            onChange={(e) =>
-              setCredentials({ ...credentials, rememberMe: e.target.checked })
-            }
-            disabled={loading}
-          />
-        }
-        label="Remember me"
-      />
-
-      <Button
-        type="submit"
-        fullWidth
-        variant="contained"
-        disabled={loading || !credentials.phone || !credentials.password}
-        sx={{ mt: 2 }}
-      >
-        {loading ? "Logging in..." : "Login"}
-      </Button>
-
-      <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
-        {loading ? "Connecting to server..." : ""}
+      <form onSubmit={handleLogin}>
+        <TextField
+          label="Email Address"
+          name="phone"
+          type="email"
+          value={credentials.phone}
+          onChange={handleChange}
+          sx={{ width: "300px", marginBottom: 2 }}
+        />
+        <TextField
+          label="Password"
+          name="password"
+          type="password"
+          value={credentials.password}
+          onChange={handleChange}
+          sx={{ width: "300px", marginBottom: 2 }}
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              name="rememberMe"
+              checked={credentials.rememberMe}
+              onChange={(e) => setCredentials({ ...credentials, rememberMe: e.target.checked })}
+            />
+          }
+          label="Remember me"
+          sx={{ width: "300px", marginBottom: 2 }}
+        />
+        {error && (
+          <Alert severity="error" sx={{ width: "300px", marginBottom: 2 }}>
+            {error}
+          </Alert>
+        )}
+        <Button
+          variant="contained"
+          type="submit"
+          sx={{
+            backgroundColor: "#25D366",
+            width: "300px",
+            marginTop: 2,
+          }}
+          disabled={loading}
+        >
+          {loading ? "Logging in..." : "Login"}
+        </Button>
+      </form>
+      <Typography sx={{ marginTop: 2 }}>
+        Don't have an account?{" "}
+        <span
+          onClick={() => navigate("/register")}
+          style={{ color: "#128C7E", cursor: "pointer" }}
+        >
+          Sign Up
+        </span>
       </Typography>
     </Box>
   );

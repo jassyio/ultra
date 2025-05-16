@@ -40,20 +40,16 @@ export const ChatProvider = ({ children }) => {
         
         // Process chats to only show other participants
         const processedChats = data.map(chat => {
-          // Find the other participant (not the current user)
           const otherParticipant = chat.participants.find(p => p._id !== user.id);
-          
-          // If no other participant found, skip this chat
           if (!otherParticipant) return null;
-          
           return {
             _id: chat._id,
-            participants: [otherParticipant], // Only include the other participant
+            participants: [otherParticipant],
             lastMessage: chat.lastMessage,
             createdAt: chat.createdAt,
             updatedAt: chat.updatedAt
           };
-        }).filter(Boolean); // Remove any null entries
+        }).filter(Boolean);
         
         setChats(processedChats);
       } catch (err) {
@@ -86,11 +82,10 @@ export const ChatProvider = ({ children }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      // Process the new chat to only show the other participant
       const otherParticipant = data.participants.find(p => p._id !== user.id);
       const processedChat = {
         _id: data._id,
-        participants: [otherParticipant], // Only include the other participant
+        participants: [otherParticipant],
         lastMessage: data.lastMessage,
         createdAt: data.createdAt,
         updatedAt: data.updatedAt
@@ -109,7 +104,7 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  // Add a message to a chat
+  // Add a message to a chat (for API-based sending)
   const addMessageToChat = async (chatId, content) => {
     if (!user) throw new Error("User not authenticated");
 
@@ -126,22 +121,12 @@ export const ChatProvider = ({ children }) => {
       );
 
       // Update the chat with the new message
-      setChats(prevChats =>
-        prevChats.map(chat => {
-          if (chat._id === chatId) {
-            return {
-              ...chat,
-              lastMessage: {
-                _id: data._id,
-                content: data.content,
-                sender: data.sender,
-                createdAt: data.createdAt
-              }
-            };
-          }
-          return chat;
-        })
-      );
+      updateChatWithNewMessage(chatId, {
+        _id: data._id,
+        content: data.content,
+        sender: data.sender,
+        createdAt: data.createdAt
+      });
 
       return {
         _id: data._id,
@@ -172,11 +157,10 @@ export const ChatProvider = ({ children }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Process the chat to only show the other participant
       const otherParticipant = data.participants.find(p => p._id !== user.id);
       return {
         _id: data._id,
-        participants: [otherParticipant], // Only include the other participant
+        participants: [otherParticipant],
         lastMessage: data.lastMessage,
         createdAt: data.createdAt,
         updatedAt: data.updatedAt
@@ -188,7 +172,7 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  // Update chat with new message
+  // Update chat with new message (for real-time socket updates)
   const updateChatWithNewMessage = (chatId, message) => {
     setChats(prevChats =>
       prevChats.map(chat => {

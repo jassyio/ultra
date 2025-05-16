@@ -7,7 +7,7 @@ import { AuthContext } from "../../context/AuthContext";
 const VerificationPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { verifyUser } = useContext(AuthContext);
+  const { verifyUser, login } = useContext(AuthContext);
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -37,6 +37,8 @@ const VerificationPage = () => {
       console.log("Response from backend:", response.data);
 
       if (response.status === 200) {
+        // Store the token and user data
+        await login(response.data.token, response.data.user);
         verifyUser();
         console.log("Navigating to setup page with email:", email);
         navigate('/setup', { state: { email } });
@@ -49,26 +51,31 @@ const VerificationPage = () => {
     }
   };
 
-  const handleResendOtp = async () => {
-    setResendDisabled(true);
-    setCountdown(30);
-    
+  const handleResendOTP = async () => {
+    if (resendDisabled) return;
+
     try {
+      setResendDisabled(true);
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
       await axios.post(`${backendUrl}/api/auth/resend-otp`, { email });
       
-      const interval = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            setResendDisabled(false);
-            return 30;
-          }
-          return prev - 1;
-        });
+      // Start countdown
+      let timeLeft = 30;
+      setCountdown(timeLeft);
+      
+      const timer = setInterval(() => {
+        timeLeft -= 1;
+        setCountdown(timeLeft);
+        
+        if (timeLeft === 0) {
+          clearInterval(timer);
+          setResendDisabled(false);
+        }
       }, 1000);
+      
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to resend OTP');
+      console.error("Failed to resend OTP:", error);
+      setError("Failed to resend OTP. Please try again.");
       setResendDisabled(false);
     }
   };
@@ -76,59 +83,54 @@ const VerificationPage = () => {
   return (
     <Box
       sx={{
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#fff',
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#fff",
       }}
     >
-      <Typography variant="h5" sx={{ fontWeight: 'bold', marginBottom: 3 }}>
+      <Typography variant="h5" sx={{ fontWeight: "bold", marginBottom: 3 }}>
         Verify Your Email
       </Typography>
-      <Typography sx={{ marginBottom: 2 }}>
-        We've sent a 6-digit code to {email}
+      <Typography variant="body1" sx={{ marginBottom: 3, textAlign: "center", maxWidth: "80%" }}>
+        Please enter the verification code sent to {email}
       </Typography>
-      
-      <form onSubmit={handleVerify} style={{ width: '300px' }}>
+      <form onSubmit={handleVerify}>
         <TextField
           label="Verification Code"
           value={otp}
           onChange={(e) => setOtp(e.target.value)}
-          fullWidth
-          margin="normal"
-          required
-          inputProps={{ maxLength: 6 }}
+          sx={{ width: "300px", marginBottom: 2 }}
+          placeholder="Enter 6-digit code"
         />
-        
         {error && (
-          <Typography color="error" sx={{ marginBottom: 2 }}>
+          <Typography color="error" sx={{ marginBottom: 2, textAlign: "center" }}>
             {error}
           </Typography>
         )}
-
         <Button
-          type="submit"
           variant="contained"
-          fullWidth
-          sx={{ marginTop: 2 }}
-          disabled={loading || otp.length !== 6}
+          type="submit"
+          sx={{
+            backgroundColor: "#25D366",
+            width: "300px",
+            marginBottom: 2,
+          }}
+          disabled={loading}
         >
-          {loading ? <CircularProgress size={24} /> : 'Verify'}
+          {loading ? <CircularProgress size={24} /> : "Verify"}
         </Button>
       </form>
-
-      <Typography sx={{ marginTop: 2 }}>
-        Didn't receive the code?{' '}
-        <Button
-          onClick={handleResendOtp}
-          disabled={resendDisabled}
-          sx={{ color: resendDisabled ? 'text.disabled' : 'primary.main' }}
-        >
-          Resend {resendDisabled && `(${countdown}s)`}
-        </Button>
-      </Typography>
+      <Button
+        variant="text"
+        onClick={handleResendOTP}
+        disabled={resendDisabled}
+        sx={{ color: "#128C7E" }}
+      >
+        {resendDisabled ? `Resend in ${countdown}s` : "Resend Code"}
+      </Button>
     </Box>
   );
 };
