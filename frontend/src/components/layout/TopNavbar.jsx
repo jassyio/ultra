@@ -1,34 +1,56 @@
-import { CameraAlt, Search, MoreVert, ArrowBack, Phone, VideoCall } from "@mui/icons-material";
-import { AppBar, Toolbar, Typography, IconButton, Box, Avatar } from "@mui/material";
-import { useContext } from "react";
-import { ChatContext } from "../../context/ChatContext";
-import { useNavigate } from "react-router-dom";
+import {
+  CameraAlt,
+  Search,
+  MoreVert,
+  ArrowBack,
+  Phone,
+  VideoCall,
+} from "@mui/icons-material";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  IconButton,
+  Box,
+  Avatar,
+} from "@mui/material";
 
-const TopNavbar = ({ title }) => {
-  const { selectedChat, setSelectedChat } = useContext(ChatContext);
-  const navigate = useNavigate();
-
+const TopNavbar = ({ title, avatar, showBackButton = false, onBack }) => {
   return (
     <AppBar position="fixed" color="default" elevation={1}>
-      <Toolbar sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", px: 2 }}>
-        {selectedChat ? (
-          // **Chat View Navbar**
+      <Toolbar
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          px: 2,
+        }}
+      >
+        {showBackButton ? (
           <>
-            {/* Back Button */}
-            <IconButton onClick={() => { setSelectedChat(null); navigate("/chats"); }}>
+            <IconButton onClick={onBack}>
               <ArrowBack fontSize="small" />
             </IconButton>
 
-            {/* Small Profile Picture & Name */}
-            <Avatar src={selectedChat.avatar} sx={{ width: 24, height: 24, mr: 1 }} />
-            <Typography variant="body1" sx={{ fontWeight: "bold", fontSize: "0.9rem", maxWidth: 80, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {selectedChat.name.length > 6 ? selectedChat.name.slice(0, 3) + "..." : selectedChat.name}
+            <Avatar
+              src={avatar || "/default-avatar.png"}
+              sx={{ width: 24, height: 24, mr: 1 }}
+            />
+            <Typography
+              variant="body1"
+              sx={{
+                fontWeight: "bold",
+                fontSize: "0.95rem",
+                maxWidth: 120,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {title}
             </Typography>
 
-            {/* Push icons to the right */}
-            <Box sx={{ flexGrow: 1 }}></Box>
-
-            {/* Call & Video Icons */}
+            <Box sx={{ flexGrow: 1 }} />
             <IconButton>
               <Phone fontSize="small" />
             </IconButton>
@@ -37,9 +59,11 @@ const TopNavbar = ({ title }) => {
             </IconButton>
           </>
         ) : (
-          // **Default Navbar (Chat List)**
           <>
-            <Typography variant="h6" sx={{ fontWeight: "bold", fontSize: "1.2rem" }}>
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: "bold", fontSize: "1.2rem" }}
+            >
               {title}
             </Typography>
 

@@ -1,134 +1,226 @@
 import React, { useState, useContext, useEffect } from "react";
-import { Box, Typography } from "@mui/material";
+import {
+  Box,
+  Typography,
+  CircularProgress,
+  Alert,
+  Snackbar,
+  Avatar,
+} from "@mui/material";
 import TopNavbar from "../layout/TopNavbar";
 import MessageInput from "../chat/MessageInput";
 import Message from "../chat/Message";
 import FloatingButton from "../common/FloatingButton";
 import AddIcon from "@mui/icons-material/Add";
 import { ChatContext } from "../../context/ChatContext";
-import { AuthContext } from "../../context/AuthContext"; // To get the current user
+import { AuthContext } from "../../context/AuthContext";
+import { SocketContext } from "../../context/SocketContext";
 import AddChatModal from "../chat/AddChatModal";
-import axios from "axios";
 
 const ChatPage = () => {
-  const { chats, setChats, selectedChat, setSelectedChat } = useContext(ChatContext);
-  const { user } = useContext(AuthContext); // Get the current logged-in user
+  const {
+    chats,
+    selectedChat,
+    setSelectedChat,
+    loading,
+    error,
+    clearError,
+    addMessageToChat,
+  } = useContext(ChatContext);
+  const { user } = useContext(AuthContext);
+  const { socket, getChatMessages, addMessage } = useContext(SocketContext);
   const [modalOpen, setModalOpen] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
 
-  // Fetch chats when the component mounts or when navigating back
+  // Socket status tracking
   useEffect(() => {
-  const fetchChats = async () => {
-    try {
-      const { data } = await axios.get("http://localhost:3001/api/chats");
-      console.log("Fetched Chats:", data); // Debugging log
-      setChats(data);
-    } catch (error) {
-      console.error("Error fetching chats:", error);
+    if (socket) {
+      socket.on("connect", () => setSocketConnected(true));
+      socket.on("disconnect", () => setSocketConnected(false));
+
+      return () => {
+        socket.off("connect");
+        socket.off("disconnect");
+      };
     }
-  };
+  }, [socket]);
 
-  fetchChats();
-}, [setChats]);
+  const currentMessages = selectedChat
+    ? getChatMessages(selectedChat._id)
+    : [];
 
-
-  // Function to update the last message in the chat list
-  const updateLastMessage = (chatId, message) => {
-    setChats((prevChats) =>
-      prevChats.map((chat) =>
-        chat._id === chatId ? { ...chat, lastMessage: message } : chat
-      )
+  // ✅ Get chat partner from chat list like in ChatList.jsx
+  const chatPartner =
+    selectedChat &&
+    chats.find((c) => c._id === selectedChat._id)?.participants.find(
+      (p) => p._id !== user?.id
     );
+
+  const handleSendMessage = async (chatId, content) => {
+    try {
+      const tempMessage = {
+        content,
+        sender: user.id,
+        chatId,
+        createdAt: new Date().toISOString(),
+        pending: true,
+      };
+      addMessage(chatId, tempMessage);
+      const savedMessage = await addMessageToChat(chatId, content);
+      addMessage(chatId, { ...savedMessage, pending: false });
+    } catch (error) {
+      console.error("Failed to send message:", error);
+    }
   };
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <TopNavbar title={selectedChat ? selectedChat.name : "Ultra"} />
-
-      {!selectedChat ? (
-        <Box sx={{ flex: 1, overflowY: "auto", p: 1, mt: "48px" }}>
-          {chats.length > 0 ? (
-            chats.map((chat, index) => {
-  console.log("Chat:", chat);
-  console.log("Participants:", chat?.participants);
-
-  const participant =
-    chat?.participants?.length > 1
-      ? chat?.participants?.find((p) => p._id !== user?.id)
-      : null;
-
-  console.log("Participant:", participant);
-
-  return (
-    <Box
-      key={chat?._id || chat?.id || index}
-      onClick={() => setSelectedChat(chat)}
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        padding: "10px",
-        borderBottom: "1px solid #ccc",
-        cursor: "pointer",
-      }}
-    >
-      <img
-        src={participant?.avatar || "/default-avatar.png"} // Fallback to default avatar
-        alt={participant?.name || "Unnamed User"} // Fallback to "Unnamed User"
-        style={{ width: 40, height: 40, borderRadius: "50%" }}
+      <TopNavbar
+        title={selectedChat ? chatPartner?.name || "Chat" : "Ultra"}
+        avatar={
+          selectedChat ? chatPartner?.avatar || "/default-avatar.png" : undefined
+        }
+        showBackButton={!!selectedChat}
+        onBack={() => setSelectedChat(null)}
       />
-      <Box sx={{ ml: 2 }}>
-        <Typography sx={{ fontWeight: "bold" }}>
-          {participant?.name || "Unnamed User"} {/* Fallback for missing name */}
-        </Typography>
-        <Typography sx={{ color: "gray" }}>
-          {chat?.lastMessage?.content || "No messages yet"} {/* Fallback for missing lastMessage */}
-        </Typography>
-      </Box>
-    </Box>
-              );
-            })
-          ) : (
-            <Typography sx={{ textAlign: "center", mt: 2 }}>
-              No chats available
-            </Typography>
-          )}
-        </Box>
-      ) : (
-        <Box
-          sx={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            mt: "48px",
-            overflowY: "auto",
-          }}
+
+      <Box sx={{ flex: 1, position: "relative", mt: "48px" }}>
+        {loading && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "rgba(255, 255, 255, 0.8)",
+              zIndex: 1000,
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        )}
+
+        <Snackbar
+          open={!!error}
+          autoHideDuration={6000}
+          onClose={clearError}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
         >
-          <Box sx={{ flex: 1, p: 2, display: "flex", flexDirection: "column" }}>
-            {selectedChat.messages?.length > 0 ? (
-              selectedChat.messages.map((msg, i) => (
-                <Message
-                  key={i}
-                  msg={msg}
-                  onSendMessage={(message) =>
-                    updateLastMessage(selectedChat._id, message)
-                  }
-                />
-              ))
+          <Alert onClose={clearError} severity="error" sx={{ width: "100%" }}>
+            {error}
+          </Alert>
+        </Snackbar>
+
+        {!selectedChat ? (
+          <Box sx={{ flex: 1, overflowY: "auto", p: 1 }}>
+            {chats.length > 0 ? (
+              chats.map((chat) => {
+                const partner = chat.participants.find(
+                  (p) => p._id !== user?.id
+                );
+                return (
+                  <Box
+                    key={`chat-${chat._id}`}
+                    onClick={() => setSelectedChat(chat)}
+                    sx={{
+                      p: 2,
+                      mb: 1,
+                      borderRadius: 1,
+                      cursor: "pointer",
+                      backgroundColor: "background.paper",
+                      "&:hover": {
+                        backgroundColor: "action.hover",
+                      },
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Avatar
+                      src={partner?.avatar || "/default-avatar.png"}
+                      alt={partner?.name}
+                      sx={{ width: 48, height: 48, mr: 2 }}
+                    />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                        {partner?.name}
+                      </Typography>
+                      {chat.lastMessage && (
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          noWrap
+                        >
+                          {chat.lastMessage.sender === user?.id ? "You: " : ""}
+                          {chat.lastMessage.content}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                );
+              })
             ) : (
-              <Typography sx={{ textAlign: "center", mt: 2 }}>
-                No messages yet
+              <Typography sx={{ textAlign: "center", mt: 2, color: "gray" }}>
+                {loading
+                  ? "Loading chats..."
+                  : "No chats available. Start a new conversation!"}
               </Typography>
             )}
           </Box>
-          <MessageInput
-            sendMessage={(msg) => {
-              // Update context here or via socket
-              updateLastMessage(selectedChat._id, msg);
+        ) : (
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              height: "calc(100vh - 48px)",
             }}
-          />
-        </Box>
-      )}
+          >
+            <Box
+              sx={{
+                flex: 1,
+                p: 2,
+                display: "flex",
+                flexDirection: "column",
+                overflowY: "auto",
+              }}
+            >
+              {currentMessages.length > 0 ? (
+                currentMessages.map((msg, i) => (
+                  <Message
+                    key={`msg-${msg._id || msg.createdAt}-${i}`}
+                    message={msg}
+                    isOwnMessage={msg.sender === user?.id}
+                    isPending={msg.pending}
+                  />
+                ))
+              ) : (
+                <Typography sx={{ textAlign: "center", mt: 2, color: "gray" }}>
+                  No messages yet. Start the conversation!
+                </Typography>
+              )}
+            </Box>
+            <MessageInput
+              chatId={selectedChat._id}
+              onMessageSent={(content) =>
+                handleSendMessage(selectedChat._id, content)
+              }
+              disabled={!socketConnected}
+            />
+          </Box>
+        )}
+      </Box>
 
-      <FloatingButton icon={<AddIcon />} onClick={() => setModalOpen(true)} />
+      {!selectedChat && (
+        <FloatingButton
+          icon={<AddIcon />}
+          onClick={() => setModalOpen(true)}
+          disabled={loading}
+        />
+      )}
 
       <AddChatModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </Box>

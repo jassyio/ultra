@@ -1,11 +1,13 @@
 import { useState, useContext } from "react";
-import { Box, TextField, Button, Typography, Checkbox, FormControlLabel } from "@mui/material";
+import { Box, TextField, Button, Typography, Checkbox, FormControlLabel, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import axios from "axios";
 
 const Login = () => {
   const [credentials, setCredentials] = useState({ phone: "", password: "", rememberMe: false });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -13,74 +15,131 @@ const Login = () => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
   };
 
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault(); // Prevent form submission
+    
+    // Validate inputs
+    if (!credentials.phone || !credentials.password) {
+      setError("Please fill in all fields");
+      return;
+    }
+
     try {
+      setLoading(true);
+      setError("");
+      console.log("Attempting login with email:", credentials.phone);
+      
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      console.log("Using backend URL:", backendUrl);
+      
       const response = await axios.post(`${backendUrl}/api/auth/login`, {
-        email: credentials.phone, // Assuming phone is used as email
+        email: credentials.phone,
         password: credentials.password,
       });
 
-      if (response.status === 200) {
-        login(response.data.token, credentials.rememberMe);
-        navigate("/chat"); // Redirect to chat after successful login
+      console.log("Login response:", response.data);
+
+      if (response.data.token) {
+        console.log("Login successful, setting token and user data");
+        await login(response.data.token, response.data.user || { email: credentials.phone });
+        navigate("/chat");
+      } else {
+        throw new Error("No token received from server");
       }
     } catch (error) {
-      console.error("Login failed:", error.response?.data?.message || error.message);
-      alert(error.response?.data?.message || "Login failed. Please try again.");
+      console.error("Login error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      setError(
+        error.response?.data?.message || 
+        error.message || 
+        "Login failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <Box
+      component="form"
+      onSubmit={handleLogin}
       sx={{
-        height: "100vh",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#fff",
+        maxWidth: 400,
+        mx: "auto",
+        p: 3,
       }}
     >
-      <Typography variant="h5" sx={{ fontWeight: "bold", marginBottom: 3 }}>
-        Login to Ultra
+      <Typography variant="h4" component="h1" gutterBottom>
+        Login
       </Typography>
+
+      {error && (
+        <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
       <TextField
-        label="Phone Number"
+        fullWidth
+        label="Email"
         name="phone"
-        type="tel"
+        type="email"
         value={credentials.phone}
         onChange={handleChange}
-        sx={{ width: "300px", marginBottom: 2 }}
+        margin="normal"
+        required
+        disabled={loading}
+        error={!!error && !credentials.phone}
+        helperText={!!error && !credentials.phone ? "Email is required" : ""}
       />
+
       <TextField
+        fullWidth
         label="Password"
         name="password"
         type="password"
         value={credentials.password}
         onChange={handleChange}
-        sx={{ width: "300px", marginBottom: 2 }}
+        margin="normal"
+        required
+        disabled={loading}
+        error={!!error && !credentials.password}
+        helperText={!!error && !credentials.password ? "Password is required" : ""}
       />
+
       <FormControlLabel
         control={
           <Checkbox
+            name="rememberMe"
             checked={credentials.rememberMe}
-            onChange={() => setCredentials({ ...credentials, rememberMe: !credentials.rememberMe })}
+            onChange={(e) =>
+              setCredentials({ ...credentials, rememberMe: e.target.checked })
+            }
+            disabled={loading}
           />
         }
-        label="Remember Me"
+        label="Remember me"
       />
-      <Button variant="contained" onClick={handleLogin} sx={{ backgroundColor: "#25D366", width: "300px", marginTop: 2 }}>
-        Login
-      </Button>
-      <Typography
-        sx={{ marginTop: 2, cursor: "pointer", color: "#128C7E" }}
-        onClick={() => navigate("/forgot-password")}
+
+      <Button
+        type="submit"
+        fullWidth
+        variant="contained"
+        disabled={loading || !credentials.phone || !credentials.password}
+        sx={{ mt: 2 }}
       >
-        Forgot Password?
-      </Typography>
-      <Typography sx={{ marginTop: 2 }}>
-        Don't have an account? <span onClick={() => navigate("/register")} style={{ color: "#128C7E", cursor: "pointer" }}>Sign up</span>
+        {loading ? "Logging in..." : "Login"}
+      </Button>
+
+      <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
+        {loading ? "Connecting to server..." : ""}
       </Typography>
     </Box>
   );

@@ -1,36 +1,71 @@
 import { useContext, useEffect, useState } from "react";
 import { ChatContext } from "../../context/ChatContext";
 import { SocketContext } from "../../context/SocketContext";
+import { AuthContext } from "../../context/AuthContext";
 import Avatar from "@mui/material/Avatar";
 import Message from "./Message";
 import MessageInput from "./MessageInput";
-import { ArrowLeftIcon, PhoneIcon, VideoCameraIcon, EllipsisVerticalIcon } from "@heroicons/react/24/solid";
+import { ArrowLeftIcon } from "@heroicons/react/24/solid";
 
 const ChatWindow = () => {
-  const { selectedChat, setSelectedChat } = useContext(ChatContext);
-  const { messages, setMessages, socket } = useContext(SocketContext);
-  const [typingStatus, setTypingStatus] = useState(null); // For typing status
-  const [isOnline, setIsOnline] = useState(false); // For tracking user's online status
+  const { selectedChat, setSelectedChat, updateChatWithNewMessage } = useContext(ChatContext);
+  const { getChatMessages, addMessage, socket } = useContext(SocketContext);
+  const { user } = useContext(AuthContext);
+  const [typingStatus, setTypingStatus] = useState(null);
+  const [isOnline, setIsOnline] = useState(false);
+  const [isConnected, setIsConnected] = useState(true);
+
+  // Get the other participant's information
+const chatPartner = selectedChat?.participants?.find(p => p._id !== user?.id);; // There will only be one participant (the other person)
+
+  // Get messages for the current chat
+  const messages = getChatMessages(selectedChat?._id);
 
   useEffect(() => {
     if (socket) {
+      const handleConnect = () => setIsConnected(true);
+      const handleDisconnect = () => setIsConnected(false);
+      const handleError = () => setIsConnected(false);
+
+      socket.on('connect', handleConnect);
+      socket.on('disconnect', handleDisconnect);
+      socket.on('connect_error', handleError);
+
+      // Check initial connection state
+      setIsConnected(socket.connected);
+
+      return () => {
+        socket.off('connect', handleConnect);
+        socket.off('disconnect', handleDisconnect);
+        socket.off('connect_error', handleError);
+      };
+    }
+  }, [socket]);
+
+  useEffect(() => {
+    if (socket && selectedChat?._id) {
       socket.on("receiveMessage", (msg) => {
-        setMessages((prevMessages) => [...prevMessages, msg]);
+        if (msg.chatId === selectedChat._id) {
+          addMessage(selectedChat._id, msg);
+          updateChatWithNewMessage(selectedChat._id, msg);
+        }
       });
 
       socket.on("typing", (data) => {
-        setTypingStatus(data); // Update typing status
+        if (data.chatId === selectedChat._id && data.sender !== user?.id) {
+          setTypingStatus(data);
+        }
       });
 
       socket.on("userOnline", (userId) => {
-        if (userId === selectedChat?.id) {
-          setIsOnline(true); // Mark the selected user as online
+        if (chatPartner?._id === userId) {
+          setIsOnline(true);
         }
       });
 
       socket.on("userOffline", (userId) => {
-        if (userId === selectedChat?.id) {
-          setIsOnline(false); // Mark the selected user as offline
+        if (chatPartner?._id === userId) {
+          setIsOnline(false);
         }
       });
 
@@ -41,9 +76,9 @@ const ChatWindow = () => {
         socket.off("userOffline");
       };
     }
-  }, [socket, setMessages, selectedChat]);
+  }, [socket, selectedChat, chatPartner, addMessage, updateChatWithNewMessage, user]);
 
-  if (!selectedChat) {
+  if (!selectedChat || !chatPartner) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
         Select a chat to start messaging
@@ -54,49 +89,74 @@ const ChatWindow = () => {
   return (
     <div className="flex flex-col h-screen bg-white dark:bg-gray-900">
       {/* Header */}
-      <div className="p-4 border-b dark:border-gray-700 bg-gray-100 dark:bg-gray-900 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <button onClick={() => setSelectedChat(null)} className="text-gray-600 dark:text-white">
-            <ArrowLeftIcon className="w-6 h-6" />
-          </button>
-          <Avatar src={selectedChat.avatar} alt={selectedChat.name} className="w-10 h-10" />
-          <span className="font-semibold text-lg dark:text-white truncate">{selectedChat.name}</span>
-        </div>
-
-        {/* Online status */}
-        <div className="flex items-center space-x-2">
-          <div className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-500'}`} />
-          <span className="text-sm text-green-500">{isOnline ? "Online" : "Offline"}</span>
-        </div>
-
-        {/* Icons */}
-        <div className="flex space-x-4">
-          {[PhoneIcon, VideoCameraIcon, EllipsisVerticalIcon].map((Icon, idx) => (
-            <button key={idx} className="text-gray-600 dark:text-white hover:text-blue-500">
-              <Icon className="w-6 h-6" />
-            </button>
-          ))}
+      <div className="h-16 px-4 flex items-center bg-[#f0f2f5] dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <button 
+          onClick={() => setSelectedChat(null)} 
+          className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 mr-2"
+        >
+          <ArrowLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+        </button>
+        <Avatar 
+          src={chatPartner.avatar || "/default-avatar.png"} 
+          alt={chatPartner.name}
+          sx={{ width: 40, height: 40 }}
+        />
+        <div className="ml-3 flex-1 min-w-0">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white truncate">
+            {chatPartner.name}
+          </h2>
+          {isOnline && (
+            <p className="text-xs text-green-500">online</p>
+          )}
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {messages.length > 0 ? (
-          messages.map((msg, index) => (
-            <Message key={index} msg={msg} />
-          ))
-        ) : (
-          <div className="text-center text-gray-400 mt-10">No messages yet. Start the conversation!</div>
-        )}
+      {/* Connection Error Alert */}
+      {!isConnected && (
+        <div className="bg-[#fef8e7] text-[#946c00] px-4 py-2 text-[13px] text-center">
+          Waiting for network...
+        </div>
+      )}
 
-        {/* Typing status */}
-        {typingStatus && (
-          <div className="text-sm text-gray-500">{`${typingStatus.sender} is typing...`}</div>
-        )}
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto bg-[#f0f2f5] dark:bg-gray-900">
+        <div className="py-3 px-[5%]">
+          {messages.length > 0 ? (
+            messages.map((msg, index) => (
+              <Message 
+                key={`${msg._id || msg.createdAt}-${index}`}
+                message={msg}
+                isOwnMessage={msg.sender === user?.id}
+                isPending={msg.pending}
+              />
+            ))
+          ) : (
+            <div className="text-center text-[#8696a0] mt-10 text-sm">
+              No messages yet
+            </div>
+          )}
+          {typingStatus && typingStatus.sender !== user?.id && (
+            <div className="text-[#8696a0] text-xs px-4">typing...</div>
+          )}
+        </div>
       </div>
 
       {/* Message Input */}
-      <MessageInput chatId={selectedChat.id} />
+      <MessageInput 
+        chatId={selectedChat._id} 
+        onMessageSent={(content) => {
+          const newMsg = {
+            content,
+            sender: user.id,
+            chatId: selectedChat._id,
+            createdAt: new Date().toISOString(),
+            pending: true
+          };
+          addMessage(selectedChat._id, newMsg);
+          updateChatWithNewMessage(selectedChat._id, newMsg);
+        }}
+        disabled={!isConnected}
+      />
     </div>
   );
 };

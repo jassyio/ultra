@@ -9,7 +9,7 @@ const SOCKET_SERVER_URL = "http://localhost:3001";
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState({});  // Change to object to store messages by chatId
 
   useEffect(() => {
     // Connect to the Socket.IO server
@@ -21,9 +21,20 @@ export const SocketProvider = ({ children }) => {
     setSocket(newSocket);
 
     // Listen for incoming messages
-    newSocket.on("message", (message) => {
+    newSocket.on("receiveMessage", (message) => {
       console.log("📨 New message received:", message);
-      setMessages((prevMessages) => [...prevMessages, message]);
+      // Store only necessary message data
+      const cleanedMessage = {
+        _id: message._id,
+        content: message.content,
+        sender: message.sender,
+        chatId: message.chatId,
+        createdAt: message.createdAt
+      };
+      setMessages((prevMessages) => ({
+        ...prevMessages,
+        [message.chatId]: [...(prevMessages[message.chatId] || []), cleanedMessage]
+      }));
     });
 
     // Handle connection errors
@@ -42,7 +53,7 @@ export const SocketProvider = ({ children }) => {
 
     // Clean up on unmount
     return () => {
-      newSocket.off("message");
+      newSocket.off("receiveMessage");
       newSocket.off("connect_error");
       newSocket.off("reconnect");
       newSocket.off("reconnect_error");
@@ -50,15 +61,36 @@ export const SocketProvider = ({ children }) => {
     };
   }, []);
 
-  // Function to emit messages
-  const sendMessage = (messageContent) => {
-    if (socket) {
-      socket.emit("send_message", messageContent);
-    }
+  // Function to add a new message locally
+  const addMessage = (chatId, message) => {
+    // Store only necessary message data
+    const cleanedMessage = {
+      _id: message._id,
+      content: message.content,
+      sender: message.sender,
+      chatId: message.chatId,
+      createdAt: message.createdAt,
+      pending: message.pending
+    };
+    setMessages((prevMessages) => ({
+      ...prevMessages,
+      [chatId]: [...(prevMessages[chatId] || []), cleanedMessage]
+    }));
+  };
+
+  // Get messages for a specific chat
+  const getChatMessages = (chatId) => {
+    return messages[chatId] || [];
   };
 
   return (
-    <SocketContext.Provider value={{ socket, messages, sendMessage }}>
+    <SocketContext.Provider value={{ 
+      socket, 
+      messages,
+      addMessage,
+      getChatMessages,
+      setMessages 
+    }}>
       {children}
     </SocketContext.Provider>
   );

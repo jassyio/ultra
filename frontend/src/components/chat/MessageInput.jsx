@@ -1,56 +1,61 @@
 import { useState, useContext, useEffect } from "react";
-import { Box, TextField, IconButton, List, ListItem, ListItemText } from "@mui/material";
+import { Box, TextField, IconButton } from "@mui/material";
 import { Send, AttachFile } from "@mui/icons-material";
-import { SocketContext } from "../../context/SocketContext"; // Import the SocketContext
+import { SocketContext } from "../../context/SocketContext";
+import { AuthContext } from "../../context/AuthContext";
 
-const MessageInput = ({ chatId }) => {
+const MessageInput = ({ chatId, onMessageSent }) => {
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]); // State to store messages
-  const [isTyping, setIsTyping] = useState(false); // Track typing status
-  const { socket } = useContext(SocketContext); // Access socket from context
+  const [isTyping, setIsTyping] = useState(false);
+  const { socket } = useContext(SocketContext);
+  const { user } = useContext(AuthContext);
 
   // Emit typing status after user stops typing for a moment (debounced)
   useEffect(() => {
     let typingTimeout;
 
-    if (message.trim()) {
+    if (message.trim() && socket) {
       setIsTyping(true);
+      socket.emit("typing", { 
+        sender: user?.name || "User", 
+        chatId, 
+        isTyping: true 
+      });
+
       typingTimeout = setTimeout(() => {
-        if (socket) {
-          socket.emit("typing", { sender: "you", chatId, isTyping: false });
-          setIsTyping(false); // Stop typing status after user stops typing
-        }
-      }, 1500); // Typing indicator appears after 1.5 seconds of inactivity
+        socket.emit("typing", { 
+          sender: user?.name || "User", 
+          chatId, 
+          isTyping: false 
+        });
+        setIsTyping(false);
+      }, 1500);
     } else {
       setIsTyping(false);
+      if (socket) {
+        socket.emit("typing", { 
+          sender: user?.name || "User", 
+          chatId, 
+          isTyping: false 
+        });
+      }
     }
 
     return () => clearTimeout(typingTimeout);
-  }, [message, socket, chatId]);
+  }, [message, socket, chatId, user]);
 
   const handleSend = () => {
     if (message.trim() === "") return;
 
-    const newMsg = {
-      text: message,
-      sender: "you",
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      status: "sent",
-      chatId: chatId, // Attach chatId
-    };
-
-    // Emit the message through socket.io
-    socket.emit("sendMessage", newMsg); // Emit message to server
-
-    // Update the messages state to display the sent message
-    setMessages((prevMessages) => [...prevMessages, newMsg]);
-
+    // Call the onMessageSent callback with the message content
+    onMessageSent(message.trim());
     setMessage(""); // Clear the input
   };
 
-  const handleTyping = () => {
-    if (socket && message.trim()) {
-      socket.emit("typing", { sender: "you", chatId, isTyping: true }); // Notify the other user that the current user is typing
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
 
@@ -58,64 +63,49 @@ const MessageInput = ({ chatId }) => {
     <Box
       sx={{
         display: "flex",
-        flexDirection: "column",
-        height: "100%",
+        alignItems: "center",
+        padding: "10px",
+        borderTop: "1px solid #ccc",
+        bgcolor: "background.paper",
       }}
+      className="dark:bg-gray-800 dark:border-gray-700"
     >
-      {/* Messages List */}
-      <List sx={{ flex: 1, overflowY: "auto", padding: "10px" }}>
-        {messages.map((msg, index) => (
-          <ListItem key={index}>
-            <ListItemText
-              primary={msg.text}
-              secondary={`${msg.sender} - ${msg.timestamp}`}
-            />
-          </ListItem>
-        ))}
-      </List>
+      {/* Attach File Button */}
+      <IconButton sx={{ mr: 1 }} className="text-gray-600 dark:text-gray-400">
+        <AttachFile />
+      </IconButton>
 
-      {/* Input Section */}
-      <Box
+      {/* Message Input */}
+      <TextField
+        fullWidth
+        placeholder="Type a message..."
+        variant="outlined"
+        size="small"
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        onKeyDown={handleKeyPress}
+        multiline
+        maxRows={4}
         sx={{
-          display: "flex",
-          alignItems: "center",
-          padding: "10px",
-          borderTop: "1px solid #ccc",
-          bgcolor: "background.paper",
-        }}
-      >
-        {/* Attach File Button */}
-        <IconButton sx={{ mr: 1 }}>
-          <AttachFile />
-        </IconButton>
-
-        {/* Message Input */}
-        <TextField
-          fullWidth
-          placeholder="Type a message..."
-          variant="outlined"
-          size="small"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyUp={handleTyping} // Emit typing status when the user types
-          onBlur={() => {
-            if (socket && message.trim()) {
-              socket.emit("typing", { sender: "you", chatId, isTyping: false });
-            }
-          }}
-          multiline
-          sx={{
+          borderRadius: "20px",
+          bgcolor: "white",
+          flex: 1,
+          "& .MuiOutlinedInput-root": {
             borderRadius: "20px",
-            bgcolor: "white",
-            flex: 1,
-          }}
-        />
+          }
+        }}
+        className="dark:bg-gray-700 dark:text-white"
+      />
 
-        {/* Send Button */}
-        <IconButton onClick={handleSend} sx={{ ml: 1 }}>
-          <Send color="primary" />
-        </IconButton>
-      </Box>
+      {/* Send Button */}
+      <IconButton 
+        onClick={handleSend} 
+        sx={{ ml: 1 }}
+        disabled={!message.trim()}
+        className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-500"
+      >
+        <Send />
+      </IconButton>
     </Box>
   );
 };

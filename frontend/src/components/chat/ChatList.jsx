@@ -5,7 +5,7 @@ import Avatar from "@mui/material/Avatar";
 
 const ChatList = () => {
   const { chats, setSelectedChat, selectedChat } = useContext(ChatContext);
-  const { user } = useContext(AuthContext); // Get the current logged-in user
+  const { user } = useContext(AuthContext);
 
   useEffect(() => {
     const savedChat = localStorage.getItem("selectedChat");
@@ -21,73 +21,59 @@ const ChatList = () => {
   };
 
   return (
-    <div className="p-4 h-full overflow-y-auto bg-white dark:bg-gray-900">
-      <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Chats</h2>
-      <ul className="space-y-2">
+    <div className="h-full overflow-y-auto bg-white dark:bg-gray-900">
+      <div className="h-[108px] px-4 pt-6 bg-[#f0f2f5] dark:bg-gray-800">
+        <h1 className="text-[20px] leading-8 text-[#111b21] dark:text-white font-normal">
+          Chats
+        </h1>
+      </div>
+      <div className="px-[10px]">
         {chats.map((chat) => {
           // Find the other participant in the chat
-          const participant = chat?.participants?.find(
-            (p) => p._id !== user?.id // Exclude the current user
-          );
+          const chatPartner = chat.participants.find(p => p._id !== user?.id);
+          if (!chatPartner) return null;
 
           return (
-            <li
+            <div
               key={chat._id}
               onClick={() => handleChatSelect(chat)}
-              className={`flex items-center p-3 rounded-lg cursor-pointer transition duration-200 ${
-                selectedChat?._id === chat._id
-                  ? "bg-blue-500 text-white shadow"
-                  : "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
+              className={`flex items-center h-[72px] px-3 cursor-pointer hover:bg-[#f5f6f6] dark:hover:bg-gray-800 ${
+                selectedChat?._id === chat._id ? "bg-[#f0f2f5] dark:bg-gray-800" : ""
               }`}
             >
               <Avatar
-                src={participant?.avatar || "/default-avatar.png"} // Fallback to default avatar
-                alt={participant?.name || "Unnamed User"} // Fallback to "Unnamed User"
-                className="w-12 h-12 mr-4"
+                src={chatPartner.avatar || "/default-avatar.png"}
+                alt={chatPartner.name}
+                sx={{ 
+                  width: 49, 
+                  height: 49,
+                  marginRight: '12px'
+                }}
               />
-              <div className="flex-1 min-w-0">
-                <h3
-                  className={`font-medium truncate ${
-                    selectedChat?._id === chat._id ? "text-white" : "text-gray-900 dark:text-white"
-                  }`}
-                >
-                  {participant?.name || "Unnamed User"} {/* Fallback for missing name */}
-                </h3>
-                <p
-                  className={`text-sm truncate flex items-center ${
-                    selectedChat?._id === chat._id
-                      ? "text-white/80"
-                      : "text-gray-500 dark:text-gray-400"
-                  }`}
-                >
-                  {chat?.lastMessage?.content || "No messages yet"} {/* Fallback for missing lastMessage */}
-                  {chat.unread && (
-                    <span className="ml-2 w-2 h-2 bg-green-500 rounded-full inline-block"></span>
+              <div className="flex-1 min-w-0 border-t border-[#e9edef] dark:border-gray-700 py-[10px]">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-[17px] leading-[21px] text-[#111b21] dark:text-white">
+                    {chatPartner.name}
+                  </h2>
+                  {chat.lastMessage && (
+                    <span className="text-xs text-[#667781]">
+                      {new Date(chat.lastMessage.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   )}
-                  {chat.isOnline && (
-                    <span className="ml-2 text-green-500">🟢 Online</span>
-                  )}
-                  {chat.isTyping && (
-                    <span className="ml-2 text-gray-500">...typing</span>
-                  )}
-                </p>
+                </div>
+                {chat.lastMessage && (
+                  <p className="text-[14px] text-[#667781] truncate mt-0.5">
+                    {chat.lastMessage.content}
+                  </p>
+                )}
               </div>
-              <div
-                className={`text-xs ${
-                  selectedChat?._id === chat._id
-                    ? "text-white/70"
-                    : "text-gray-400 dark:text-gray-500"
-                }`}
-              >
-                {new Date(chat?.lastMessage?.createdAt).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }) || ""}
-              </div>
-            </li>
+            </div>
           );
         })}
-      </ul>
+      </div>
     </div>
   );
 };
