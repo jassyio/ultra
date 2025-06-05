@@ -29,7 +29,7 @@ const Login = () => {
       setError("");
       console.log("Attempting login with email:", credentials.phone);
       
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'ultra-backend.vercel.app';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
       console.log("Using backend URL:", backendUrl);
       
       const response = await axios.post(`${backendUrl}/api/auth/login`, {
