@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext, useRef } from "react";
+import { createContext, useState, useEffect, useContext } from "react";
 import { AuthContext } from "./AuthContext";
 import { ChatContext } from "./ChatContext";
 import io from "socket.io-client";
@@ -13,58 +13,36 @@ export const SocketProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const { user } = useContext(AuthContext);
   const { updateChatWithNewMessage } = useContext(ChatContext);
-  const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 5;
 
   useEffect(() => {
     if (!user?.id) return;
 
-    let newSocket;
-    let reconnectTimer;
+    const token = localStorage.getItem('token');
+    if (!token) return;
 
-    const connectSocket = () => {
-      const token = localStorage.getItem('token');
-      if (!user?.id || !token) return null;
-      if (reconnectAttempts.current >= maxReconnectAttempts) return null;
-      return io(SOCKET_SERVER_URL, {
-        transports: ["websocket"],
-        withCredentials: true,
-        auth: { userId: user.id, token },
-        reconnection: false
-      });
-    };
+    const newSocket = io(SOCKET_SERVER_URL, {
+      transports: ["websocket"],
+      withCredentials: true,
+      auth: { userId: user.id, token },
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+    });
 
-    newSocket = connectSocket();
-    if (!newSocket) return;
+    setSocket(newSocket);
 
     newSocket.on("connect", () => {
       setIsConnected(true);
-      reconnectAttempts.current = 0;
       if (user?.id) newSocket.emit("userOnline", user.id);
     });
 
     newSocket.on("disconnect", () => {
       setIsConnected(false);
-      if (reconnectAttempts.current < maxReconnectAttempts) {
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000);
-        reconnectTimer = setTimeout(() => {
-          reconnectAttempts.current += 1;
-          if (socket) socket.disconnect();
-          setSocket(null);
-        }, delay);
-      }
     });
 
     newSocket.on("connect_error", (error) => {
       setIsConnected(false);
-      if (reconnectAttempts.current < maxReconnectAttempts) {
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000);
-        reconnectTimer = setTimeout(() => {
-          reconnectAttempts.current += 1;
-          if (socket) socket.disconnect();
-          setSocket(null);
-        }, delay);
-      }
+      console.error("❌ Socket connection error:", error);
     });
 
     // Handle receiveMessage
@@ -73,7 +51,11 @@ export const SocketProvider = ({ children }) => {
         const chatMessages = prevMessages[message.chatId] || [];
         let replaced = false;
         const updatedMessages = chatMessages.map(msg => {
-          if (msg._id === message._id) {
+          // Replace optimistic message (by content, sender, and status "sent") or by _id
+          if (
+            (msg.status === "sent" && msg.content === message.content && msg.sender === message.sender && !msg._id.toString().match(/^[a-f\d]{24}$/i)) ||
+            (msg._id === message._id)
+          ) {
             replaced = true;
             return { ...message };
           }
@@ -89,9 +71,8 @@ export const SocketProvider = ({ children }) => {
       });
       updateChatWithNewMessage && updateChatWithNewMessage(message.chatId, message);
 
-      // If the message is not from me, emit delivered status
       if (message.sender !== user.id && message.status !== "delivered") {
-        socket.emit("messageDelivered", {
+        newSocket.emit("messageDelivered", {
           messageId: message._id,
           chatId: message.chatId
         });
@@ -104,7 +85,11 @@ export const SocketProvider = ({ children }) => {
         const chatMessages = prevMessages[message.chatId] || [];
         let replaced = false;
         const updatedMessages = chatMessages.map(msg => {
-          if (msg._id === message._id) {
+          // Replace optimistic message (by content, sender, and status "sent") or by _id
+          if (
+            (msg.status === "sent" && msg.content === message.content && msg.sender === message.sender && !msg._id.toString().match(/^[a-f\d]{24}$/i)) ||
+            (msg._id === message._id)
+          ) {
             replaced = true;
             return { ...message };
           }
@@ -152,10 +137,11 @@ export const SocketProvider = ({ children }) => {
     setSocket(newSocket);
 
     return () => {
-      if (reconnectTimer) clearTimeout(reconnectTimer);
       if (newSocket) newSocket.disconnect();
+      setSocket(null);
+      setIsConnected(false);
     };
-  }, [user, updateChatWithNewMessage]);
+  }, [user?.id]); // Only user?.id as dependency
 
   // Send message with status "sent"
   const sendMessage = (chatId, message) => {
@@ -191,7 +177,7 @@ export const SocketProvider = ({ children }) => {
     return pendingMessage;
   };
 
-  // Call this when user opens a chat to mark all as read
+  // Mark all as read
   const markMessagesAsRead = (chatId) => {
     if (!socket || !isConnected) return;
     const chatMessages = messages[chatId] || [];
@@ -223,7 +209,7 @@ export const SocketProvider = ({ children }) => {
       sendMessage,
       joinChatRoom,
       leaveChatRoom,
-      markMessagesAsRead // <-- Export this for use in your chat UI
+      markMessagesAsRead
     }}>
       {children}
     </SocketContext.Provider>
