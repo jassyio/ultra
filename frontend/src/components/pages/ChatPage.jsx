@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useRef } from "react";
 import {
   Box,
   Typography,
@@ -6,17 +6,27 @@ import {
   Alert,
   Snackbar,
   Avatar,
+  Menu,
+  MenuItem,
+  ListItemIcon,
 } from "@mui/material";
 import TopNavbar from "../layout/TopNavbar";
 import MessageInput from "../chat/MessageInput";
 import Message from "../chat/Message";
 import FloatingButton from "../common/FloatingButton";
 import AddIcon from "@mui/icons-material/Add";
+import GroupIcon from "@mui/icons-material/Group";
+import CampaignIcon from "@mui/icons-material/Campaign";
+import DevicesIcon from "@mui/icons-material/Devices";
+import StarIcon from "@mui/icons-material/Star";
+import SettingsIcon from "@mui/icons-material/Settings";
+import LogoutIcon from "@mui/icons-material/Logout";
 import { ChatContext } from "../../context/ChatContext";
 import { AuthContext } from "../../context/AuthContext";
 import { SocketContext } from "../../context/SocketContext";
 import AddChatModal from "../chat/AddChatModal";
 import ChatWindow from "../chat/ChatWindow";
+import { useNavigate } from "react-router-dom";
 
 const ChatPage = () => {
   const {
@@ -27,17 +37,56 @@ const ChatPage = () => {
     error,
     clearError,
   } = useContext(ChatContext);
-  const { user } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext); // <-- get logout from context
   const { socket } = useContext(SocketContext);
   const [modalOpen, setModalOpen] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
+
+  // Menu state
+  const [anchorEl, setAnchorEl] = useState(null);
+  const openMenu = Boolean(anchorEl);
+  const navigate = useNavigate();
+  const moreButtonRef = useRef(null);
+
+  const handleMenuClick = (event) => {
+    setAnchorEl(moreButtonRef.current);
+  };
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  // Menu item handlers
+  const handleNewGroup = () => {
+    alert("New group (not implemented)");
+    handleMenuClose();
+  };
+  const handleNewBroadcast = () => {
+    alert("New broadcast (not implemented)");
+    handleMenuClose();
+  };
+  const handleLinkedDevices = () => {
+    alert("Linked devices (not implemented)");
+    handleMenuClose();
+  };
+  const handleStarredMessages = () => {
+    navigate("/starred");
+    handleMenuClose();
+  };
+  const handleSettings = () => {
+    navigate("/settings");
+    handleMenuClose();
+  };
+  const handleLogout = () => {
+    logout(); // <-- clear user from context
+    navigate("/"); // Redirect to start page
+    handleMenuClose();
+  };
 
   // Socket status tracking
   useEffect(() => {
     if (socket) {
       socket.on("connect", () => setSocketConnected(true));
       socket.on("disconnect", () => setSocketConnected(false));
-
       return () => {
         socket.off("connect");
         socket.off("disconnect");
@@ -54,14 +103,62 @@ const ChatPage = () => {
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <TopNavbar
-        title={selectedChat ? chatPartner?.name || "Chat" : "Ultra"}
-        avatar={
-          selectedChat ? chatPartner?.avatar || "/default-avatar.png" : undefined
-        }
-        showBackButton={!!selectedChat}
-        onBack={() => setSelectedChat(null)}
-      />
+      {/* Top bar with title and menu */}
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, pt: 1 }}>
+        <TopNavbar
+          title={selectedChat ? chatPartner?.name || "Chat" : "Ultra"}
+          avatar={
+            selectedChat ? chatPartner?.avatar || "/default-avatar.png" : undefined
+          }
+          showBackButton={!!selectedChat}
+          onBack={() => setSelectedChat(null)}
+          onMoreClick={handleMenuClick}
+          moreButtonRef={moreButtonRef}
+        />
+      </Box>
+
+      {/* Menu anchored to the MoreVert icon in TopNavbar */}
+      <Menu
+        id="more-menu"
+        anchorEl={anchorEl}
+        open={openMenu}
+        onClose={handleMenuClose}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+      >
+        <MenuItem onClick={handleNewGroup}>
+          <ListItemIcon><GroupIcon fontSize="small" /></ListItemIcon>
+          New group
+        </MenuItem>
+        <MenuItem onClick={handleNewBroadcast}>
+          <ListItemIcon><CampaignIcon fontSize="small" /></ListItemIcon>
+          New broadcast
+        </MenuItem>
+        <MenuItem onClick={handleLinkedDevices}>
+          <ListItemIcon><DevicesIcon fontSize="small" /></ListItemIcon>
+          Linked devices
+        </MenuItem>
+        <MenuItem onClick={handleStarredMessages}>
+          <ListItemIcon><StarIcon fontSize="small" /></ListItemIcon>
+          Starred messages
+        </MenuItem>
+        <MenuItem onClick={handleSettings}>
+          <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
+          Settings
+        </MenuItem>
+        <MenuItem onClick={handleLogout}>
+          <ListItemIcon>
+            <LogoutIcon fontSize="small" sx={{ color: "error.main" }} />
+          </ListItemIcon>
+          <Typography sx={{ color: "error.main" }}>Logout</Typography>
+        </MenuItem>
+      </Menu>
 
       <Box 
         sx={{ 

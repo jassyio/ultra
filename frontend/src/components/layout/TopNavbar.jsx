@@ -15,7 +15,14 @@ import {
   Avatar,
 } from "@mui/material";
 
-const TopNavbar = ({ title, avatar, showBackButton = false, onBack }) => {
+const TopNavbar = ({
+  title,
+  avatar,
+  showBackButton = false,
+  onBack,
+  onMoreClick,
+  moreButtonRef,
+}) => {
   return (
     <AppBar position="fixed" color="default" elevation={1}>
       <Toolbar
@@ -74,7 +81,12 @@ const TopNavbar = ({ title, avatar, showBackButton = false, onBack }) => {
               <IconButton>
                 <Search fontSize="small" />
               </IconButton>
-              <IconButton>
+              <IconButton
+                ref={moreButtonRef}
+                onClick={onMoreClick}
+                aria-label="more"
+                aria-haspopup="true"
+              >
                 <MoreVert fontSize="small" />
               </IconButton>
             </Box>
