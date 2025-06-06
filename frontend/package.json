@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@emoji-mart/react": "^1.1.1",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@heroicons/react": "^2.2.0",
@@ -19,6 +18,7 @@
     "autoprefixer": "^10.4.20",
     "axios": "^1.8.4",
     "emoji-mart": "^5.6.0",
+    "emoji-picker-react": "^4.12.2",
     "framer-motion": "^12.5.0",
     "lucide": "^0.483.0",
     "lucide-react": "^0.483.0",

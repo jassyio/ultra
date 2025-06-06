@@ -7,9 +7,17 @@ import {
   InsertEmoticon, AttachFile, CameraAlt, Mic, Send, Gif, Image, InsertDriveFile,
   Audiotrack, LocationOn, ContactMail, Poll, Event
 } from "@mui/icons-material";
-import Picker from "@emoji-mart/react";
+import EmojiPicker from "emoji-picker-react";
 import { SocketContext } from "../../context/SocketContext";
 import { AuthContext } from "../../context/AuthContext";
+
+// Place your sticker images in public/stickers/
+const stickers = [
+  "/stickers/sticker1.png",
+  "/stickers/sticker2.png",
+  "/stickers/sticker3.png"
+  // Add more as needed
+];
 
 const emojiMenuOptions = [
   { icon: <InsertEmoticon />, label: "Emoji", type: "emoji" },
@@ -39,6 +47,9 @@ const MessageInput = ({ chatId, disabled }) => {
   const [emojiAnchor, setEmojiAnchor] = useState(null);
   const [emojiMenuType, setEmojiMenuType] = useState("emoji");
   const [attachAnchor, setAttachAnchor] = useState(null);
+  const [gifResults, setGifResults] = useState([]);
+  const [gifSearch, setGifSearch] = useState("");
+  const [emojiPickerReady, setEmojiPickerReady] = useState(false);
 
   const { isConnected, sendMessage } = useContext(SocketContext);
   const { user } = useContext(AuthContext);
@@ -99,9 +110,23 @@ const MessageInput = ({ chatId, disabled }) => {
     if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
   };
 
+  // Giphy API for GIFs (React 19 compatible)
+  const handleGifSearch = async (query) => {
+    setGifSearch(query);
+    if (!query) {
+      setGifResults([]);
+      return;
+    }
+    const res = await fetch(
+      `https://api.giphy.com/v1/gifs/search?api_key=dc6zaTOxFJmzC&q=${encodeURIComponent(query)}&limit=20`
+    );
+    const data = await res.json();
+    setGifResults(data.data);
+  };
+
   // Send message
   const handleSend = async () => {
-    if ((!message.trim() && !mediaBlob) || !isConnected || isSending) return;
+    if ((!message.trim() && !mediaBlob && !mediaPreview) || !isConnected || isSending) return;
     setIsSending(true);
     try {
       if (mediaBlob) {
@@ -112,6 +137,13 @@ const MessageInput = ({ chatId, disabled }) => {
           attachments: [{ url: fakeUrl, type: mediaType }]
         });
         setMediaBlob(null);
+        setMediaType(null);
+        setMediaPreview(null);
+      } else if (mediaType === "gif" || mediaType === "sticker") {
+        sendMessage(chatId, {
+          content: message.trim(),
+          attachments: [{ url: mediaPreview, type: mediaType }]
+        });
         setMediaType(null);
         setMediaPreview(null);
       } else {
@@ -134,216 +166,291 @@ const MessageInput = ({ chatId, disabled }) => {
     setIsRecording(false);
   };
 
-  // Emoji picker add
-  const handleEmojiSelect = (emoji) => setMessage((msg) => msg + emoji.native);
+  // Pre-mount EmojiPicker offscreen for instant popover
+  // This will help reduce the delay when opening the emoji picker
+  // The onLoaded prop is not documented but works in emoji-picker-react
+  // If it doesn't, just keep the hidden EmojiPicker for pre-mounting
+  // (It will still help with performance)
+  // You can remove onLoaded if you see a warning
+  // This is optional but recommended for best UX
+  // Place this just before return:
+  // <Box sx={{ display: "none" }}>
+  //   <EmojiPicker onEmojiClick={() => {}} theme="light" width="100%" lazyLoadEmojis />
+  // </Box>
 
   return (
-    <Box sx={{
-      display: "flex",
-      alignItems: "flex-end",
-      p: 1,
-      borderTop: "1px solid",
-      borderColor: "divider",
-      bgcolor: "background.paper"
-    }}>
-      {/* Emoji/GIF/Sticker */}
-      <IconButton
-        aria-label="emoji"
-        onClick={handleEmojiMenuOpen}
-        disabled={disabled || !isConnected}
-        sx={{ mr: 0.5 }}
-      >
-        <InsertEmoticon />
-      </IconButton>
-      <Popover
-        open={Boolean(emojiAnchor)}
-        anchorEl={emojiAnchor}
-        onClose={handleEmojiMenuClose}
-        anchorOrigin={{ vertical: "top", horizontal: "left" }}
-      >
-        <Box sx={{ display: "flex", justifyContent: "center", p: 1 }}>
-          {emojiMenuOptions.map(opt => (
-            <IconButton
-              key={opt.type}
-              color={emojiMenuType === opt.type ? "primary" : "default"}
-              onClick={() => handleEmojiMenuSwitch(opt.type)}
-            >
-              {opt.icon}
-            </IconButton>
-          ))}
-        </Box>
-        <Divider />
-        <Box sx={{ minWidth: 320, minHeight: 350 }}>
-          {emojiMenuType === "emoji" && (
-            <Picker onEmojiSelect={handleEmojiSelect} theme="light" />
-          )}
-          {emojiMenuType === "gif" && (
-            <Box sx={{ p: 2, textAlign: "center" }}>GIF picker coming soon</Box>
-          )}
-          {emojiMenuType === "sticker" && (
-            <Box sx={{ p: 2, textAlign: "center" }}>Sticker picker coming soon</Box>
-          )}
-        </Box>
-      </Popover>
-
-      {/* Input area */}
+    <>
+      {/* Pre-mount EmojiPicker offscreen for instant popover */}
+      <Box sx={{ display: "none" }}>
+        <EmojiPicker
+          onEmojiClick={() => {}}
+          theme="light"
+          width="100%"
+          lazyLoadEmojis
+        />
+      </Box>
       <Box sx={{
         display: "flex",
-        alignItems: "center",
-        flex: 1,
-        borderRadius: 20,
-        bgcolor: "#f0f2f5",
-        px: 1,
-        mr: 1,
-        minHeight: 48
+        alignItems: "flex-end",
+        p: 1,
+        borderTop: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.paper"
       }}>
-        {/* Media preview */}
-        {mediaPreview && (
-          <Box sx={{ mr: 1, display: "flex", alignItems: "center" }}>
-            {mediaType === "image" && (
-              <img src={mediaPreview} alt="preview" style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover" }} />
-            )}
-            {mediaType === "video" && (
-              <video src={mediaPreview} controls style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover" }} />
-            )}
-            {mediaType === "audio" && (
-              <Audiotrack color="primary" />
-            )}
-            <IconButton size="small" onClick={handleCancelMedia}>✕</IconButton>
-          </Box>
-        )}
-        <TextField
-          variant="standard"
-          fullWidth
-          multiline
-          maxRows={4}
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-          placeholder={isConnected ? "Message" : "Connecting..."}
-          disabled={disabled || !isConnected || isRecording}
-          InputProps={{
-            disableUnderline: true,
-            sx: { px: 1, py: 1 }
-          }}
-          sx={{
-            flex: 1,
-            bgcolor: "transparent",
-            "& .MuiInputBase-input": { fontSize: 16 }
-          }}
-        />
-
-        {/* Attach */}
-        <input
-          type="file"
-          hidden
-          ref={fileInputRef}
-          onChange={e => handleFileChange(e, "file")}
-        />
-        <input
-          type="file"
-          accept="image/*"
-          hidden
-          ref={imageInputRef}
-          onChange={e => handleFileChange(e, "image")}
-        />
-        <input
-          type="file"
-          accept="video/*"
-          hidden
-          ref={videoInputRef}
-          onChange={e => handleFileChange(e, "video")}
-        />
-        <input
-          type="file"
-          accept="audio/*"
-          hidden
-          ref={audioInputRef}
-          onChange={e => handleFileChange(e, "audio")}
-        />
-        <input
-          type="file"
-          accept="image/*,video/*"
-          capture="environment"
-          hidden
-          ref={cameraInputRef}
-          onChange={e => {
-            const file = e.target.files[0];
-            if (!file) return;
-            setMediaType(file.type.startsWith("image") ? "image" : "video");
-            setMediaBlob(file);
-            setMediaPreview(URL.createObjectURL(file));
-            setMessage(file.name);
-          }}
-        />
+        {/* Emoji/GIF/Sticker */}
         <IconButton
-          aria-label="attach"
-          onClick={handleAttachMenuOpen}
+          aria-label="emoji"
+          onClick={handleEmojiMenuOpen}
           disabled={disabled || !isConnected}
+          sx={{ mr: 0.5 }}
         >
-          <AttachFile />
+          <InsertEmoticon />
         </IconButton>
         <Popover
-          open={Boolean(attachAnchor)}
-          anchorEl={attachAnchor}
-          onClose={handleAttachMenuClose}
+          open={Boolean(emojiAnchor)}
+          anchorEl={emojiAnchor}
+          onClose={handleEmojiMenuClose}
           anchorOrigin={{ vertical: "top", horizontal: "left" }}
         >
-          <List dense>
-            {attachMenuOptions.map(opt => (
-              <ListItem
-                button
-                key={opt.label}
-                onClick={() => {
-                  if (opt.type === "file") fileInputRef.current.click();
-                  else if (opt.type === "image") imageInputRef.current.click();
-                  else if (opt.type === "video") videoInputRef.current.click();
-                  else if (opt.type === "audio") audioInputRef.current.click();
-                  else if (opt.type === "camera") cameraInputRef.current.click();
-                  else alert(`${opt.label} feature coming soon!`);
-                  handleAttachMenuClose();
-                }}
+          <Box sx={{ display: "flex", justifyContent: "center", p: 1 }}>
+            {emojiMenuOptions.map(opt => (
+              <IconButton
+                key={opt.type}
+                color={emojiMenuType === opt.type ? "primary" : "default"}
+                onClick={() => handleEmojiMenuSwitch(opt.type)}
               >
-                <ListItemIcon>{opt.icon}</ListItemIcon>
-                <ListItemText primary={opt.label} />
-              </ListItem>
+                {opt.icon}
+              </IconButton>
             ))}
-          </List>
+          </Box>
+          <Divider />
+          <Box sx={{ minWidth: 320, minHeight: 350 }}>
+            {emojiMenuType === "emoji" && (
+              <EmojiPicker
+                onEmojiClick={(emojiData) => setMessage(msg => msg + emojiData.emoji)}
+                theme="light"
+                width="100%"
+                lazyLoadEmojis
+              />
+            )}
+            {emojiMenuType === "gif" && (
+              <Box sx={{ p: 2 }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Search GIFs"
+                  value={gifSearch}
+                  onChange={e => handleGifSearch(e.target.value)}
+                  sx={{ mb: 2 }}
+                />
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, maxHeight: 250, overflowY: "auto" }}>
+                  {gifResults.map(gif => (
+                    <img
+                      key={gif.id}
+                      src={gif.images.fixed_height.url}
+                      alt={gif.title}
+                      style={{ width: 100, height: 100, borderRadius: 8, cursor: "pointer", objectFit: "cover" }}
+                      onClick={() => {
+                        setMediaType("gif");
+                        setMediaBlob(null);
+                        setMediaPreview(gif.images.fixed_height.url);
+                        setMessage("[GIF]");
+                        setEmojiAnchor(null);
+                        setGifResults([]);
+                        setGifSearch("");
+                      }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
+            {emojiMenuType === "sticker" && (
+              <Box sx={{ display: "flex", flexWrap: "wrap", p: 2, gap: 1 }}>
+                {stickers.map((url, i) => (
+                  <img
+                    key={i}
+                    src={url}
+                    alt="sticker"
+                    style={{ width: 64, height: 64, cursor: "pointer" }}
+                    onClick={() => {
+                      setMediaType("sticker");
+                      setMediaBlob(null);
+                      setMediaPreview(url);
+                      setMessage("[Sticker]");
+                      setEmojiAnchor(null);
+                    }}
+                  />
+                ))}
+              </Box>
+            )}
+          </Box>
         </Popover>
 
-        {/* Camera */}
-        <IconButton
-          aria-label="camera"
-          onClick={handleCamera}
-          disabled={disabled || !isConnected}
-        >
-          <CameraAlt />
-        </IconButton>
-      </Box>
+        {/* Input area */}
+        <Box sx={{
+          display: "flex",
+          alignItems: "center",
+          flex: 1,
+          borderRadius: 20,
+          bgcolor: "#f0f2f5",
+          px: 1,
+          mr: 1,
+          minHeight: 48
+        }}>
+          {/* Media preview */}
+          {mediaPreview && (
+            <Box sx={{ mr: 1, display: "flex", alignItems: "center" }}>
+              {mediaType === "image" && (
+                <img src={mediaPreview} alt="preview" style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover" }} />
+              )}
+              {mediaType === "video" && (
+                <video src={mediaPreview} controls style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover" }} />
+              )}
+              {mediaType === "audio" && (
+                <Audiotrack color="primary" />
+              )}
+              {mediaType === "gif" && (
+                <img src={mediaPreview} alt="gif" style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover" }} />
+              )}
+              {mediaType === "sticker" && (
+                <img src={mediaPreview} alt="sticker" style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover" }} />
+              )}
+              <IconButton size="small" onClick={handleCancelMedia}>✕</IconButton>
+            </Box>
+          )}
+          <TextField
+            variant="standard"
+            fullWidth
+            multiline
+            maxRows={4}
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            placeholder={isConnected ? "Message" : "Connecting..."}
+            disabled={disabled || !isConnected || isRecording}
+            InputProps={{
+              disableUnderline: true,
+              sx: { px: 1, py: 1 }
+            }}
+            sx={{
+              flex: 1,
+              bgcolor: "transparent",
+              "& .MuiInputBase-input": { fontSize: 16 }
+            }}
+          />
 
-      {/* Mic/Send (outside input area, right-aligned) */}
-      {(!message.trim() && !mediaBlob && !isRecording) ? (
-        <IconButton
-          color={isRecording ? "secondary" : "primary"}
-          aria-label="mic"
-          disabled={disabled || !isConnected}
-          onMouseDown={handleStartRecording}
-          onMouseUp={handleStopRecording}
-          onTouchStart={handleStartRecording}
-          onTouchEnd={handleStopRecording}
-        >
-          <Mic />
-        </IconButton>
-      ) : (
-        <IconButton
-          color="primary"
-          aria-label="send"
-          onClick={handleSend}
-          disabled={(!message.trim() && !mediaBlob) || !isConnected || isSending || disabled}
-        >
-          {isSending ? <CircularProgress size={24} /> : <Send />}
-        </IconButton>
-      )}
-    </Box>
+          {/* Attach */}
+          <input
+            type="file"
+            hidden
+            ref={fileInputRef}
+            onChange={e => handleFileChange(e, "file")}
+          />
+          <input
+            type="file"
+            accept="image/*"
+            hidden
+            ref={imageInputRef}
+            onChange={e => handleFileChange(e, "image")}
+          />
+          <input
+            type="file"
+            accept="video/*"
+            hidden
+            ref={videoInputRef}
+            onChange={e => handleFileChange(e, "video")}
+          />
+          <input
+            type="file"
+            accept="audio/*"
+            hidden
+            ref={audioInputRef}
+            onChange={e => handleFileChange(e, "audio")}
+          />
+          <input
+            type="file"
+            accept="image/*,video/*"
+            capture="environment"
+            hidden
+            ref={cameraInputRef}
+            onChange={e => {
+              const file = e.target.files[0];
+              if (!file) return;
+              setMediaType(file.type.startsWith("image") ? "image" : "video");
+              setMediaBlob(file);
+              setMediaPreview(URL.createObjectURL(file));
+              setMessage(file.name);
+            }}
+          />
+          <IconButton
+            aria-label="attach"
+            onClick={handleAttachMenuOpen}
+            disabled={disabled || !isConnected}
+          >
+            <AttachFile />
+          </IconButton>
+          <Popover
+            open={Boolean(attachAnchor)}
+            anchorEl={attachAnchor}
+            onClose={handleAttachMenuClose}
+            anchorOrigin={{ vertical: "top", horizontal: "left" }}
+          >
+            <List dense>
+              {attachMenuOptions.map(opt => (
+                <ListItem
+                  button
+                  key={opt.label}
+                  onClick={() => {
+                    if (opt.type === "file") fileInputRef.current.click();
+                    else if (opt.type === "image") imageInputRef.current.click();
+                    else if (opt.type === "video") videoInputRef.current.click();
+                    else if (opt.type === "audio") audioInputRef.current.click();
+                    else if (opt.type === "camera") cameraInputRef.current.click();
+                    else alert(`${opt.label} feature coming soon!`);
+                    handleAttachMenuClose();
+                  }}
+                >
+                  <ListItemIcon>{opt.icon}</ListItemIcon>
+                  <ListItemText primary={opt.label} />
+                </ListItem>
+              ))}
+            </List>
+          </Popover>
+
+          {/* Camera */}
+          <IconButton
+            aria-label="camera"
+            onClick={handleCamera}
+            disabled={disabled || !isConnected}
+          >
+            <CameraAlt />
+          </IconButton>
+        </Box>
+
+        {/* Mic/Send (outside input area, right-aligned) */}
+        {(!message.trim() && !mediaBlob && !mediaPreview && !isRecording) ? (
+          <IconButton
+            color={isRecording ? "secondary" : "primary"}
+            aria-label="mic"
+            disabled={disabled || !isConnected}
+            onMouseDown={handleStartRecording}
+            onMouseUp={handleStopRecording}
+            onTouchStart={handleStartRecording}
+            onTouchEnd={handleStopRecording}
+          >
+            <Mic />
+          </IconButton>
+        ) : (
+          <IconButton
+            color="primary"
+            aria-label="send"
+            onClick={handleSend}
+            disabled={(!message.trim() && !mediaBlob && !mediaPreview) || !isConnected || isSending || disabled}
+          >
+            {isSending ? <CircularProgress size={24} /> : <Send />}
+          </IconButton>
+        )}
+      </Box>
+    </>
   );
 };
 
