@@ -18,8 +18,8 @@ const PORT = process.env.PORT || 3001;
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "http://localhost:3000",
-  "https://your-frontend.vercel.app",
+  "http://localhost:3001",
+  "https://ultra-frontend-zeta.vercel.app/",
 ];
 
 app.use(cors({
