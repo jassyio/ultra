@@ -11,6 +11,7 @@ const userRoutes = require("./routes/userRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const Chat = require("./models/Chat");
+const Message = require("./models/Message"); // Import Message model
 
 const app = express();
 const server = http.createServer(app);
@@ -123,16 +124,27 @@ io.on("connection", (socket) => {
         await socket.join(message.chatId);
       }
 
-      // Prepare message data for emission (no DB save)
-      const messageData = {
-        _id: Date.now().toString(), // Temporary unique ID
+      // Save message to DB
+      const savedMessage = await Message.create({
         sender: userId,
         content: message.content.trim(),
         chatId: message.chatId,
         status: ["sent", "delivered", "read"].includes(message.status) 
           ? message.status 
           : "sent",
-        createdAt: new Date().toISOString()
+      });
+
+      // Log when message is saved
+      console.log(`💾 Message saved: ${savedMessage._id} by user ${userId} in chat ${message.chatId}`);
+
+      // Prepare message data for emission
+      const messageData = {
+        _id: savedMessage._id,
+        sender: userId,
+        content: savedMessage.content,
+        chatId: savedMessage.chatId,
+        status: savedMessage.status,
+        createdAt: savedMessage.createdAt
       };
 
       // Send confirmation to sender
