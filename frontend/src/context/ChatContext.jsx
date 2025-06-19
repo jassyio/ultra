@@ -4,191 +4,107 @@ import axios from "axios";
 
 export const ChatContext = createContext();
 
+const BACKEND_URL = "http://localhost:3001";
+
 export const ChatProvider = ({ children }) => {
-  const [chats, setChats] = useState([]);
-  const [selectedChat, setSelectedChat] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const { user } = useContext(AuthContext);
 
-  // Reset state when user changes
+  const [chats, setChats] = useState([]);
+  const [selectedChat, setSelectedChat] = useState(null);
+  const [messages, setMessages] = useState({}); // { [chatId]: [messages] }
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Fetch chats on login
   useEffect(() => {
     if (!user) {
       setChats([]);
       setSelectedChat(null);
-      setError(null);
-      setLoading(false);
+      setMessages({});
+      return;
     }
-  }, [user]);
-
-  // Fetch chats when the component mounts or when user changes
-  useEffect(() => {
     const fetchChats = async () => {
-      if (!user) return;
-
+      setLoading(true);
       try {
-        setLoading(true);
-        setError(null);
         const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("No authentication token found");
-        }
-
-        const { data } = await axios.get("http://localhost:3001/api/chats", {
+        const { data } = await axios.get(`${BACKEND_URL}/api/chats`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        
-        // Process chats to only show other participants
-        const processedChats = data.map(chat => {
-          const otherParticipant = chat.participants.find(p => p._id !== user.id);
-          if (!otherParticipant) return null;
-          return {
-            _id: chat._id,
-            participants: [otherParticipant],
-            lastMessage: chat.lastMessage,
-            createdAt: chat.createdAt,
-            updatedAt: chat.updatedAt
-          };
-        }).filter(Boolean);
-        
-        setChats(processedChats);
+        setChats(data);
       } catch (err) {
-        console.error("Failed to load chats:", err);
-        setError(err.response?.data?.message || "Failed to load chats");
         setChats([]);
       } finally {
         setLoading(false);
       }
     };
-
     fetchChats();
   }, [user]);
 
-  // Create a new chat
-  const createChat = async (userId) => {
-    if (!user) throw new Error("User not authenticated");
+  // Fetch offline messages on login
+  useEffect(() => {
+    if (!user) return;
+    const fetchOfflineMessages = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const { data } = await axios.get(`${BACKEND_URL}/api/messages/offline`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        // Merge offline messages into messages state
+        if (data.messages) {
+          setMessages(prev => {
+            const updated = { ...prev };
+            data.messages.forEach(msg => {
+              if (!updated[msg.chatId]) updated[msg.chatId] = [];
+              // Avoid duplicates
+              if (!updated[msg.chatId].some(m => m._id === msg._id)) {
+                updated[msg.chatId].push(msg);
+              }
+            });
+            return updated;
+          });
+        }
+      } catch {}
+    };
+    fetchOfflineMessages();
+  }, [user]);
 
+  // Fetch messages for a chat
+  const fetchMessagesForChat = async (chatId) => {
+    if (!user || !chatId) return;
+    setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
       const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
-
-      const { data } = await axios.post(
-        "http://localhost:3001/api/chats",
-        { userId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
-      const otherParticipant = data.participants.find(p => p._id !== user.id);
-      const processedChat = {
-        _id: data._id,
-        participants: [otherParticipant],
-        lastMessage: data.lastMessage,
-        createdAt: data.createdAt,
-        updatedAt: data.updatedAt
-      };
-
-      setChats(prevChats => [...prevChats, processedChat]);
-      setSelectedChat(processedChat);
-      return processedChat;
-    } catch (err) {
-      console.error("Chat creation failed:", err);
-      const errorMessage = err.response?.data?.message || "Failed to create chat";
-      setError(errorMessage);
-      throw new Error(errorMessage);
+      const { data } = await axios.get(`${BACKEND_URL}/api/messages/${chatId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setMessages(prev => ({ ...prev, [chatId]: data.messages || [] }));
+    } catch {
+      setMessages(prev => ({ ...prev, [chatId]: [] }));
     } finally {
       setLoading(false);
     }
   };
 
-  // Add a message to a chat (for API-based sending)
-  const addMessageToChat = async (chatId, content) => {
-    if (!user) throw new Error("User not authenticated");
-
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
-
-      const { data } = await axios.post(
-        `http://localhost:3001/api/chats/${chatId}/messages`,
-        { content },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      // Update the chat with the new message
-      updateChatWithNewMessage(chatId, {
-        _id: data._id,
-        content: data.content,
-        sender: data.sender,
-        createdAt: data.createdAt
-      });
-
-      return {
-        _id: data._id,
-        content: data.content,
-        sender: data.sender,
-        chatId: data.chatId,
-        createdAt: data.createdAt
-      };
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || "Failed to send message";
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    }
+  // Add a new message to a chat (real-time or after sending)
+  const addMessageToChat = (chatId, message) => {
+    setMessages(prev => ({
+      ...prev,
+      [chatId]: [
+        ...(prev[chatId] || []).filter(
+          m => !(m.isPending && message.content && m.content === message.content)
+        ),
+        message,
+      ],
+    }));
   };
 
-  // Get a specific chat
-  const getChat = async (chatId) => {
-    if (!user) throw new Error("User not authenticated");
-
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
-
-      const { data } = await axios.get(
-        `http://localhost:3001/api/chats/${chatId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const otherParticipant = data.participants.find(p => p._id !== user.id);
-      return {
-        _id: data._id,
-        participants: [otherParticipant],
-        lastMessage: data.lastMessage,
-        createdAt: data.createdAt,
-        updatedAt: data.updatedAt
-      };
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || "Failed to load chat";
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    }
-  };
-
-  // Update chat with new message (for real-time socket updates)
   const updateChatWithNewMessage = (chatId, message) => {
-    setChats(prevChats =>
-      prevChats.map(chat => {
-        if (chat._id === chatId) {
-          return {
-            ...chat,
-            lastMessage: {
-              _id: message._id,
-              content: message.content,
-              sender: message.sender,
-              createdAt: message.createdAt
-            }
-          };
-        }
-        return chat;
-      })
+    setChats(prev =>
+      prev.map(chat =>
+        chat._id === chatId
+          ? { ...chat, lastMessage: message, updatedAt: message.createdAt }
+          : chat
+      )
     );
   };
 
@@ -199,12 +115,13 @@ export const ChatProvider = ({ children }) => {
         setChats,
         selectedChat,
         setSelectedChat,
-        loading,
-        error,
-        createChat,
+        messages,
+        setMessages,
+        fetchMessagesForChat,
         addMessageToChat,
-        getChat,
-        updateChatWithNewMessage
+        updateChatWithNewMessage, // <-- ADD THIS LINE
+        loading,
+        error
       }}
     >
       {children}

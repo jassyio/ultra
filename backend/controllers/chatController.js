@@ -1,5 +1,6 @@
-const Chat = require("../models/Chat");
 const User = require("../models/User");
+const Chat = require("../models/Chat");
+const Message = require("../models/Message");
 
 // 📩 Start or get a one-on-one chat by email
 exports.accessOrCreateChatByEmail = async (req, res) => {
@@ -7,64 +8,57 @@ exports.accessOrCreateChatByEmail = async (req, res) => {
     const { email } = req.body;
     const currentUserId = req.user.id;
 
-    if (!email) {
-      return res.status(400).json({ message: "Email is required" });
-    }
-
-    // Find the target user by email
-    const targetUser = await User.findOne({ email });
-    if (!targetUser) {
+    const otherUser = await User.findOne({ email });
+    if (!otherUser) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Prevent chatting with oneself
-    if (targetUser._id.toString() === currentUserId) {
-      return res.status(400).json({ message: "You cannot chat with yourself" });
-    }
-
-    // Check if a chat already exists between the current user and the target user
+    // Check for existing chat
     let chat = await Chat.findOne({
-      isGroupChat: false,
-      participants: { $all: [currentUserId, targetUser._id] },
-    }).populate("participants", "name email phone avatar");
+      participants: { $all: [currentUserId, otherUser._id], $size: 2 },
+    });
 
-    // If no chat exists, create a new one
     if (!chat) {
-      chat = await Chat.create({
-        participants: [currentUserId, targetUser._id],
-      });
-
-      // Populate the participants' details
-      chat = await Chat.findById(chat._id).populate(
-        "participants",
-        "name email phone avatar"
-      );
+      chat = await Chat.create({ participants: [currentUserId, otherUser._id] });
     }
 
-    res.status(200).json(chat);
+    res.status(201).json(chat);
+  } catch (error) {
+    console.error("Error in accessOrCreateChatByEmail:", error);
+    res.status(500).json({ message: "Could not start chat", error: error.message });
+  }
+};
+
+// 📨 Fetch all chats for the current user, including last message
+exports.getUserChats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const chats = await Chat.find({ participants: userId })
+      .populate("participants", "name email avatar")
+      .populate("lastMessage", "content sender createdAt")
+      .sort({ updatedAt: -1 }); // Most recent first
+
+    res.status(200).json(chats);
   } catch (err) {
-    console.error("❌ Error accessing/creating chat:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-// 📨 Fetch all chats for the current user
-
-exports.getUserChats = async (req, res) => {
+// ✅ Mark all messages in a chat as read by the current user
+exports.markMessagesAsRead = async (req, res) => {
   try {
     const userId = req.user.id;
+    const { chatId } = req.params;
 
-    // Fetch all chats where the current user is a participant
-    const chats = await Chat.find({
-      participants: userId,
-    })
-      .populate("participants", "name email avatar") // Include participant details
-      .populate("lastMessage", "content sender createdAt") // Include last message details
-      .sort({ updatedAt: -1 }); // Sort by most recently updated
+    // Update all messages in the chat that haven't been read by this user
+    await Message.updateMany(
+      { chatId, readBy: { $ne: userId } },
+      { $addToSet: { readBy: userId }, status: "read" }
+    );
 
-    res.status(200).json(chats);
+    res.status(200).json({ message: "Messages marked as read" });
   } catch (err) {
-    console.error("❌ Error fetching user chats:", err);
+    console.error("❌ Error marking messages as read:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };

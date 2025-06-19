@@ -10,6 +10,7 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const chatRoutes = require("./routes/chatRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 const Chat = require("./models/Chat");
 const Message = require("./models/Message"); // Import Message model
 
@@ -40,6 +41,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/chats", chatRoutes);
+app.use("/api/messages", messageRoutes);
 
 app.get("/", (req, res) => {
   res.send("🚀 Backend running successfully!");

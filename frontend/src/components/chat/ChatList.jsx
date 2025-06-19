@@ -7,11 +7,11 @@ const ChatList = () => {
   const { chats, setSelectedChat, selectedChat } = useContext(ChatContext);
   const { user } = useContext(AuthContext);
 
+  // Restore selected chat from localStorage on mount
   useEffect(() => {
     const savedChat = localStorage.getItem("selectedChat");
     if (savedChat) {
-      const parsedChat = JSON.parse(savedChat);
-      setSelectedChat(parsedChat);
+      setSelectedChat(JSON.parse(savedChat));
     }
   }, [setSelectedChat]);
 
@@ -28,9 +28,11 @@ const ChatList = () => {
         </h1>
       </div>
       <div className="px-[10px]">
+        {chats.length === 0 && (
+          <div className="text-center text-gray-400 mt-8">No chats yet</div>
+        )}
         {chats.map((chat) => {
-          // Find the other participant in the chat
-          const chatPartner = chat.participants.find(p => p._id !== user?.id);
+          const chatPartner = chat.participants.find((p) => p._id !== user?.id);
           if (!chatPartner) return null;
 
           return (
@@ -44,15 +46,11 @@ const ChatList = () => {
               <Avatar
                 src={chatPartner.avatar || "/default-avatar.png"}
                 alt={chatPartner.name}
-                sx={{ 
-                  width: 49, 
-                  height: 49,
-                  marginRight: '12px'
-                }}
+                sx={{ width: 49, height: 49, marginRight: "12px" }}
               />
               <div className="flex-1 min-w-0 border-t border-[#e9edef] dark:border-gray-700 py-[10px]">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-[17px] leading-[21px] text-[#111b21] dark:text-white">
+                  <h2 className="text-[17px] leading-[21px] text-[#111b21] dark:text-white truncate">
                     {chatPartner.name}
                   </h2>
                   {chat.lastMessage && (
