@@ -22,7 +22,7 @@ const authMiddleware = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    console.error("❌ Auth Middleware Error:", error.message);
+    console.error("❌ Auth Middleware Error:", error);
     res.status(401).json({ message: "Access denied: Invalid or expired token" });
   }
 };

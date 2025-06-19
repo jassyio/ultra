@@ -53,8 +53,8 @@ const Message = ({ message, isOwnMessage, isPending = false }) => {
       (typeof message.sender === "object" && message.sender._id === user.id));
 
   return (
-    <MessageContainer data-is-own={isOwnMessage}>
-      <MessageBubble data-is-own={isOwnMessage}>
+    <MessageContainer data-is-own={own}>
+      <MessageBubble data-is-own={own}>
         <Typography
           component="span"
           sx={{
