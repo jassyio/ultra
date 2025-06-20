@@ -1,8 +1,8 @@
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { ChatContext } from "../../context/ChatContext";
 import { SocketContext } from "../../context/SocketContext";
 import { AuthContext } from "../../context/AuthContext";
-import { Box, Alert } from "@mui/material";
+import { Box } from "@mui/material";
 import Message from "./Message";
 import MessageInput from "./MessageInput";
 import TopNavbar from "../layout/TopNavbar";
@@ -17,24 +17,50 @@ const ChatWindow = () => {
     fetchMessagesForChat,
     addMessageToChat,
     updateChatWithNewMessage,
+    setMessages,
   } = useContext(ChatContext);
   const { user } = useContext(AuthContext);
-  const { isConnected } = useContext(SocketContext);
+  const { socket, isConnected } = useContext(SocketContext);
 
-  // Fetch messages for selected chat
+  const messagesEndRef = useRef(null);
+
+  // Fetch messages when chat opens
   useEffect(() => {
     if (selectedChat?._id) {
       fetchMessagesForChat(selectedChat._id);
     }
   }, [selectedChat?._id]);
 
-  // Get chat partner
-  const chatPartner =
-    chats.find((c) => c._id === selectedChat?._id)?.participants.find(
-      (p) => p._id !== user?.id
-    );
+  // Handle incoming socket messages
+  useEffect(() => {
+    if (!socket || !selectedChat) return;
 
-  // Defensive: Don't render if no chat selected or no partner
+    const handleIncomingMessage = (message) => {
+      const chatId = message.chatId || message.chat?._id;
+
+      // ✅ Normalize sender ID
+      const senderId =
+        typeof message.sender === "object" ? message.sender._id : message.sender;
+
+      // ✅ Avoid re-adding messages from self
+      if (senderId === user.id) return;
+
+      updateChatWithNewMessage(chatId, message);
+    };
+
+    socket.on("message received", handleIncomingMessage);
+    return () => socket.off("message received", handleIncomingMessage);
+  }, [socket, selectedChat?._id, user.id, updateChatWithNewMessage]);
+
+  // Scroll to bottom on message list update
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages[selectedChat?._id]?.length]);
+
+  const chatPartner = chats
+    .find((c) => c._id === selectedChat?._id)
+    ?.participants.find((p) => p._id !== user?.id);
+
   if (!selectedChat || !chatPartner) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
@@ -45,9 +71,9 @@ const ChatWindow = () => {
 
   const chatMessages = messages[selectedChat._id] || [];
 
-  // Optimistic send
   const handleSendMessage = async (content) => {
     if (!selectedChat?._id || !content.trim() || !user?.id) return;
+
     const tempId = Date.now().toString();
     const pendingMsg = {
       _id: tempId,
@@ -56,6 +82,8 @@ const ChatWindow = () => {
       createdAt: new Date().toISOString(),
       isPending: true,
     };
+
+    // ✅ Add pending message to UI
     addMessageToChat(selectedChat._id, pendingMsg);
 
     try {
@@ -69,11 +97,32 @@ const ChatWindow = () => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      // Replace pending with real message
-      addMessageToChat(selectedChat._id, data.data);
-      updateChatWithNewMessage(selectedChat._id, data.data);
-    } catch {
-      // Optionally show error or mark as failed
+
+      const confirmed = data.data;
+
+      // ✅ Replace pending with confirmed message
+      setMessages((prev) => {
+        const existing = prev[selectedChat._id] || [];
+        const filtered = existing.filter(
+          (m) =>
+            !(
+              m.isPending &&
+              m.content === confirmed.content &&
+              ((typeof m.sender === "object" ? m.sender._id : m.sender) === user.id)
+            )
+        );
+        return {
+          ...prev,
+          [selectedChat._id]: [...filtered, confirmed],
+        };
+      });
+
+      // ✅ Update chat preview (not messages again)
+      setTimeout(() => {
+        updateChatWithNewMessage(selectedChat._id, confirmed);
+      }, 50);
+    } catch (err) {
+      console.error("Message send failed", err);
     }
   };
 
@@ -103,7 +152,11 @@ const ChatWindow = () => {
               <Message
                 key={msg._id || index}
                 message={msg}
-                isOwnMessage={msg.sender === user.id}
+                isOwnMessage={
+                  (typeof msg.sender === "object"
+                    ? msg.sender._id
+                    : msg.sender) === user.id
+                }
                 isPending={msg.isPending}
               />
             ))
@@ -119,10 +172,10 @@ const ChatWindow = () => {
               No messages yet
             </Box>
           )}
+          <div ref={messagesEndRef} />
         </Box>
       </Box>
 
-      {/* Message Input */}
       <Box
         sx={{
           position: "sticky",
