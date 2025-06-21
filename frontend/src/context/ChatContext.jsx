@@ -213,7 +213,8 @@ export const ChatProvider = ({ children }) => {
   const selectChat = useCallback(
     async (chat) => {
       setSelectedChat(chat);
-      if (!messages[chat._id]?.length) {
+      // Add null check here
+      if (chat && chat._id && !messages[chat._id]?.length) {
         await fetchMessagesForChat(chat._id);
       }
     },
