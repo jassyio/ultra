@@ -24,35 +24,32 @@ const ChatWindow = () => {
 
   const messagesEndRef = useRef(null);
 
-  // Fetch messages when chat opens
   useEffect(() => {
     if (selectedChat?._id) {
       fetchMessagesForChat(selectedChat._id);
     }
   }, [selectedChat?._id]);
 
-  // Handle incoming socket messages
+  // Update socket handler to be more robust
   useEffect(() => {
     if (!socket || !selectedChat) return;
 
     const handleIncomingMessage = (message) => {
+      if (!message || !message.chatId) {
+        console.warn("Received invalid socket message", message);
+        return;
+      }
+
       const chatId = message.chatId || message.chat?._id;
 
-      // ✅ Normalize sender ID
-      const senderId =
-        typeof message.sender === "object" ? message.sender._id : message.sender;
-
-      // ✅ Avoid re-adding messages from self
-      if (senderId === user.id) return;
-
+      // Don't skip your own messages - let the handler dedupe them
       updateChatWithNewMessage(chatId, message);
     };
 
     socket.on("message received", handleIncomingMessage);
     return () => socket.off("message received", handleIncomingMessage);
-  }, [socket, selectedChat?._id, user.id, updateChatWithNewMessage]);
+  }, [socket, selectedChat?._id, updateChatWithNewMessage]);
 
-  // Scroll to bottom on message list update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages[selectedChat?._id]?.length]);
@@ -74,17 +71,17 @@ const ChatWindow = () => {
   const handleSendMessage = async (content) => {
     if (!selectedChat?._id || !content.trim() || !user?.id) return;
 
-    const tempId = Date.now().toString();
     const pendingMsg = {
-      _id: tempId,
+      _id: Date.now().toString(),
       sender: user.id,
-      content,
+      content: content.trim(),
       createdAt: new Date().toISOString(),
-      isPending: true,
+      chatId: selectedChat._id,
+      isPending: true, // Make sure this is set!
     };
 
-    // ✅ Add pending message to UI
     addMessageToChat(selectedChat._id, pendingMsg);
+    updateChatWithNewMessage(selectedChat._id, pendingMsg); // Only call updateChatWithNewMessage once with the pending message
 
     try {
       const token = localStorage.getItem("token");
@@ -100,16 +97,10 @@ const ChatWindow = () => {
 
       const confirmed = data.data;
 
-      // ✅ Replace pending with confirmed message
       setMessages((prev) => {
         const existing = prev[selectedChat._id] || [];
         const filtered = existing.filter(
-          (m) =>
-            !(
-              m.isPending &&
-              m.content === confirmed.content &&
-              ((typeof m.sender === "object" ? m.sender._id : m.sender) === user.id)
-            )
+          (m) => !(m.isPending && m.content === content.trim()) // Remove reference to tempId
         );
         return {
           ...prev,
@@ -117,10 +108,7 @@ const ChatWindow = () => {
         };
       });
 
-      // ✅ Update chat preview (not messages again)
-      setTimeout(() => {
-        updateChatWithNewMessage(selectedChat._id, confirmed);
-      }, 50);
+      // No call to updateChatWithNewMessage here anymore (avoid double)
     } catch (err) {
       console.error("Message send failed", err);
     }
@@ -150,7 +138,7 @@ const ChatWindow = () => {
           {chatMessages.length > 0 ? (
             chatMessages.map((msg, index) => (
               <Message
-                key={msg._id || index}
+                key={msg._id || msg.tempId || index}
                 message={msg}
                 isOwnMessage={
                   (typeof msg.sender === "object"

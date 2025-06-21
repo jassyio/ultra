@@ -20,7 +20,6 @@ export const ChatProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch all chats
   const fetchChats = useCallback(async () => {
     if (!user) {
       setChats([]);
@@ -31,11 +30,20 @@ export const ChatProvider = ({ children }) => {
 
     setLoading(true);
     try {
+      console.log("Fetching chats...");
       const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No token found");
+        setError("Authentication required");
+        setLoading(false);
+        return;
+      }
+
       const { data } = await axios.get(`${BACKEND_URL}/api/chats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      console.log("Chats received:", data?.length || 0);
       const initialMessages = {};
       data.forEach((chat) => {
         initialMessages[chat._id] = [];
@@ -43,24 +51,19 @@ export const ChatProvider = ({ children }) => {
 
       setChats(data);
       setMessages((prev) => ({ ...prev, ...initialMessages }));
-
-      if (selectedChat && selectedChat._id) {
-        fetchMessagesForChat(selectedChat._id);
-      }
     } catch (err) {
+      console.error("Error fetching chats:", err.response || err.message);
       setError(err.response?.data?.message || "Failed to load chats");
       setChats([]);
     } finally {
       setLoading(false);
     }
-  }, [user, selectedChat]);
+  }, [user?.id]); // Only depend on user.id, not the entire selectedChat object
 
-  // On user change or login
   useEffect(() => {
     fetchChats();
   }, [user, fetchChats]);
 
-  // Offline messages
   useEffect(() => {
     if (!user) return;
 
@@ -113,65 +116,67 @@ export const ChatProvider = ({ children }) => {
     fetchOfflineMessages();
   }, [user]);
 
-  // Fetch all messages for a specific chat
-  const fetchMessagesForChat = useCallback(
-    async (chatId) => {
-      if (!user || !chatId) return;
+  const fetchMessagesForChat = useCallback(async (chatId) => {
+    if (!user || !chatId) return;
 
-      setLoading(true);
-      try {
-        const token = localStorage.getItem("token");
-        const { data } = await axios.get(`${BACKEND_URL}/api/messages/${chatId}`, {
-          headers: { Authorization: `Bearer ${token}` },
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const { data } = await axios.get(`${BACKEND_URL}/api/messages/${chatId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setMessages((prev) => {
+        const current = prev[chatId] || [];
+        const seenIds = new Set(current.map((msg) => msg._id));
+        const merged = [...current];
+
+        (data.messages || []).forEach((msg) => {
+          if (!seenIds.has(msg._id)) {
+            merged.push(msg);
+          }
         });
 
-        setMessages((prev) => {
-          const current = prev[chatId] || [];
-          const seenIds = new Set(current.map((msg) => msg._id));
-          const merged = [...current];
+        return { ...prev, [chatId]: merged };
+      });
 
-          (data.messages || []).forEach((msg) => {
-            if (!seenIds.has(msg._id)) {
-              merged.push(msg);
-            }
-          });
-
-          return { ...prev, [chatId]: merged };
-        });
-
-        if (data.messages?.length > 0) {
-          const lastMessage = data.messages[data.messages.length - 1];
-          setChats((prev) =>
-            prev.map((chat) =>
-              chat._id === chatId
-                ? { ...chat, lastMessage, updatedAt: lastMessage.createdAt }
-                : chat
-            )
-          );
-        }
-      } catch (err) {
-        setError(err.response?.data?.message || "Failed to load messages");
-        setMessages((prev) => ({ ...prev, [chatId]: [] }));
-      } finally {
-        setLoading(false);
+      if (data.messages?.length > 0) {
+        const lastMessage = data.messages[data.messages.length - 1];
+        setChats((prev) =>
+          prev.map((chat) =>
+            chat._id === chatId
+              ? { ...chat, lastMessage, updatedAt: lastMessage.createdAt }
+              : chat
+          )
+        );
       }
-    },
-    [user]
-  );
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to load messages");
+      setMessages((prev) => ({ ...prev, [chatId]: [] }));
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
-  // ✅ FIXED: Add message, replace pending, avoid duplicates
   const addMessageToChat = useCallback((chatId, message) => {
+    console.log("➕ addMessageToChat:", message);
+
     setMessages((prev) => {
       const currentMsgs = prev[chatId] || [];
-      let filtered = currentMsgs;
-      if (message.tempId) {
-        filtered = currentMsgs.filter(m => m.tempId !== message.tempId);
+
+      const isDuplicate = currentMsgs.some(
+        (m) =>
+          m._id === message._id ||
+          (message.tempId && m.tempId && m.tempId === message.tempId)
+      );
+      if (isDuplicate) {
+        console.warn("❗ Skipping duplicate in addMessageToChat:", message);
+        return prev;
       }
-      // Prevent duplicates by _id
-      if (filtered.some(m => m._id === message._id)) return prev;
+
       return {
         ...prev,
-        [chatId]: [...filtered, message],
+        [chatId]: [...currentMsgs, message],
       };
     });
 
@@ -184,42 +189,68 @@ export const ChatProvider = ({ children }) => {
     );
   }, []);
 
-  // Update chat list and chat window with new message (e.g. from socket)
-  const updateChatWithNewMessage = useCallback(
-    (chatId, message) => {
-      setChats((prev) =>
-        prev.map((chat) =>
+  const updateChatWithNewMessage = useCallback((chatId, message) => {
+    console.log("📥 updateChatWithNewMessage:", message);
+
+    // First, handle messages state
+    setMessages((prev) => {
+      const currentMsgs = prev[chatId] || [];
+      
+      // Real message from server - Filter out any pending message with same content
+      if (!message.isPending && message._id && message._id.length > 15) {
+        // MongoDB IDs are longer than timestamp IDs we use for pending
+        const filtered = currentMsgs.filter(m => 
+          // Add null check before calling toString()
+          !(m._id && typeof m._id.toString === 'function' && 
+            m._id.toString().length < 15 && 
+            m.content === message.content)
+        );
+        
+        // Check for exact duplicates by ID - with null check
+        if (filtered.some(m => m._id && m._id === message._id)) {
+          console.log("⚠️ Skipping duplicate message:", message._id);
+          return prev;
+        }
+        
+        console.log("✅ Replacing pending with confirmed message");
+        return {
+          ...prev,
+          [chatId]: [...filtered, message]
+        };
+      }
+      
+      // Pending message - only add if no existing message with same content
+      if (currentMsgs.some(m => m.content === message.content)) {
+        console.log("⚠️ Skipping duplicate pending message");
+        return prev;
+      }
+      
+      console.log("✅ Adding new message to chat");
+      return {
+        ...prev,
+        [chatId]: [...currentMsgs, {...message, isPending: true}]
+      };
+    });
+
+    // Then, update chats list
+    // Only update chat list with real (non-pending) messages
+    if (!message.isPending && message._id && message._id.length > 15) {
+      setChats(prev =>
+        prev.map(chat =>
           chat._id === chatId
             ? { ...chat, lastMessage: message, updatedAt: message.createdAt }
             : chat
         )
       );
+    }
+  }, []);  // Remove dependency on user.id to avoid unnecessary re-renders
 
-      setMessages((prev) => {
-        const currentMsgs = prev[chatId] || [];
-        const exists = currentMsgs.some((m) => m._id === message._id);
-        if (exists) return prev;
-
-        return {
-          ...prev,
-          [chatId]: [...currentMsgs, message],
-        };
-      });
-    },
-    []
-  );
-
-  // Select a chat and ensure messages are loaded
-  const selectChat = useCallback(
-    async (chat) => {
-      setSelectedChat(chat);
-      // Add null check here
-      if (chat && chat._id && !messages[chat._id]?.length) {
-        await fetchMessagesForChat(chat._id);
-      }
-    },
-    [fetchMessagesForChat, messages]
-  );
+  const selectChat = useCallback(async (chat) => {
+    setSelectedChat(chat);
+    if (chat && chat._id && !messages[chat._id]?.length) {
+      await fetchMessagesForChat(chat._id);
+    }
+  }, [fetchMessagesForChat, messages]);
 
   return (
     <ChatContext.Provider
