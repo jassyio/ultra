@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Chat = require("../models/Chat");
 const Message = require("../models/Message");
+const Group = require("../models/Group");
 
 // 📩 Start or get a one-on-one chat by email
 exports.accessOrCreateChatByEmail = async (req, res) => {
@@ -60,5 +61,30 @@ exports.markMessagesAsRead = async (req, res) => {
   } catch (err) {
     console.error("❌ Error marking messages as read:", err);
     res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+exports.getChats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Fetch direct chats
+    const chats = await Chat.find({ participants: userId })
+      .populate("participants", "name email avatar")
+      .populate("lastMessage", "content sender createdAt")
+      .sort({ updatedAt: -1 });
+
+    // Fetch groups where user is a member
+    const groups = await Group.find({ "members.user": userId })
+      .populate("members.user", "name email avatar")
+      .populate("lastMessage", "content sender createdAt")
+      .sort({ updatedAt: -1 });
+
+    const combined = [...chats, ...groups];
+
+    res.json(combined);
+  } catch (err) {
+    console.error("❌ Error in getChats:", err); // Add this line for debugging
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };

@@ -2,82 +2,78 @@ const mongoose = require("mongoose");
 
 const MessageSchema = new mongoose.Schema(
   {
-    sender: { 
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: "User", 
-      required: [true, "Sender ID is required"],
-      validate: {
-        validator: function(v) {
-          return mongoose.Types.ObjectId.isValid(v);
+    sender: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    content: {
+      type: String,
+      required: true,
+    },
+    // For direct messages - making this optional if groupId exists
+    chatId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Chat",
+    },
+    // For group messages - optional if chatId exists
+    groupId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Group",
+    },
+    readBy: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
         },
-        message: props => `${props.value} is not a valid user ID!`
-      }
-    },
-    chatId: { 
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: "Chat", 
-      required: [true, "Chat ID is required"],
-      validate: {
-        validator: function(v) {
-          return mongoose.Types.ObjectId.isValid(v);
+        readAt: {
+          type: Date,
+          default: Date.now,
         },
-        message: props => `${props.value} is not a valid chat ID!`
-      }
+      },
+    ],
+    // Message types: text, image, voice, etc.
+    messageType: {
+      type: String,
+      enum: ["text", "image", "voice", "video", "file"],
+      default: "text",
     },
-    content: { 
-      type: String, 
-      required: [true, "Message content is required"],
-      minlength: [1, "Message must be at least 1 character long"],
-      maxlength: [5000, "Message cannot exceed 5000 characters"],
-      trim: true
-    },
-    status: { 
-      type: String, 
-      enum: {
-        values: ["sent", "delivered", "read"],
-        message: "Status must be either 'sent', 'delivered', or 'read'"
-      }, 
+    // For media messages
+    mediaUrl: String,
+    // For message status
+    status: {
+      type: String,
+      enum: ["sent", "delivered", "read"],
       default: "sent",
-      select: false
     },
-    attachments: [{
-      url: String,
-      type: {
-        type: String,
-        enum: ["image", "video", "audio", "file"]
-      }
-    }]
   },
-  { 
+  {
     timestamps: true,
-    toJSON: { 
-      virtuals: true,
-      transform: function(doc, ret) {
-        ret.id = ret._id;
-        delete ret._id;
-        delete ret.__v;
-        return ret;
-      }
-    }
   }
 );
 
-// Indexes for better query performance
-MessageSchema.index({ chatId: 1 });
-MessageSchema.index({ sender: 1 });
-MessageSchema.index({ createdAt: -1 });
-
-// Pre-save hook to validate data
-MessageSchema.pre("save", function(next) {
-  if (this.isModified("content")) {
-    this.content = this.content.trim();
+// Either chatId or groupId must be present, not both
+MessageSchema.pre("validate", function (next) {
+  if (
+    (this.chatId && this.groupId) ||
+    (!this.chatId && !this.groupId)
+  ) {
+    next(
+      new Error(
+        "Message must have either a chatId OR a groupId, not both or neither"
+      )
+    );
+  } else {
+    next();
   }
-  
-  if (this.isModified("status") && !["sent", "delivered", "read"].includes(this.status)) {
-    this.status = "sent";
-  }
-  
-  next();
 });
 
-module.exports = mongoose.model("Message", MessageSchema);
+// Create indexes for faster querying
+MessageSchema.index({ chatId: 1, createdAt: -1 });
+MessageSchema.index({ groupId: 1, createdAt: -1 });
+MessageSchema.index({ sender: 1 });
+
+const Message = mongoose.model("Message", MessageSchema);
+
+module.exports = Message;

@@ -11,8 +11,11 @@ const userRoutes = require("./routes/userRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const groupRoutes = require('./routes/groupRoutes'); // Import groupRoutes
 const Chat = require("./models/Chat");
 const Message = require("./models/Message"); // Import Message model
+const User = require('./models/User'); // Import User model
+const Group = require('./models/Group'); // Import Group model
 
 const app = express();
 const server = http.createServer(app);
@@ -42,6 +45,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/messages", messageRoutes);
+app.use('/api/groups', groupRoutes); // Use groupRoutes
 
 app.get("/", (req, res) => {
   res.send("🚀 Backend running successfully!");
@@ -186,6 +190,82 @@ io.on("connection", (socket) => {
       });
     }
   });
+
+  // Group chat socket events
+  socket.on("joinGroupRoom", (groupId) => {
+    const roomId = `group:${groupId}`;
+    socket.join(roomId);
+    console.log(`🚪 User ${userId} joined group room: ${roomId}`);
+  });
+
+  socket.on("leaveGroupRoom", (groupId) => {
+    socket.leave(`group:${groupId}`);
+    console.log(`🚶 User ${userId} left group room: group:${groupId}`);
+  });
+
+  socket.on("sendGroupMessage", async (message) => {
+    try {
+      console.log(`📨 Group message from ${userId} in group ${message.groupId}: ${message.content}`);
+
+      // Validate input
+      if (!message.content?.trim() || !message.groupId || !message.sender) {
+        throw new Error("Missing required fields: content, groupId, or sender");
+      }
+      
+      if (message.sender !== userId) {
+        throw new Error("Invalid sender ID");
+      }
+
+      // Join room if not already joined
+      const roomId = `group:${message.groupId}`;
+      socket.join(roomId);
+
+      // Save message to DB (using the updated Message model that supports group messages)
+      const newMessage = new Message({
+        sender: userId,
+        content: message.content.trim(),
+        groupId: message.groupId,
+        messageType: message.messageType || 'text',
+        mediaUrl: message.mediaUrl || null,
+        readBy: [{ user: userId }] // Sender has read the message
+      });
+      
+      const savedMessage = await newMessage.save();
+      
+      // Populate sender info
+      await savedMessage.populate('sender', 'name email');
+
+      console.log(`💾 Group message saved: ${savedMessage._id}`);
+
+      // Emit to everyone in the group including sender (for confirmation)
+      io.to(roomId).emit("newGroupMessage", {
+        _id: savedMessage._id,
+        sender: savedMessage.sender,
+        content: savedMessage.content,
+        groupId: savedMessage.groupId,
+        messageType: savedMessage.messageType,
+        mediaUrl: savedMessage.mediaUrl,
+        readBy: savedMessage.readBy,
+        createdAt: savedMessage.createdAt
+      });
+      
+    } catch (error) {
+      console.error("❌ Error handling group message:", error);
+      socket.emit("groupMessageError", { 
+        error: error.message,
+        originalMessage: message 
+      });
+    }
+  });
+
+  socket.on("typingInGroup", (data) => {
+    console.log(`✍️ User ${userId} typing in group ${data.groupId}`);
+    const groupRoomId = `group:${data.groupId}`;
+    socket.to(groupRoomId).emit("typingInGroup", {
+      ...data,
+      sender: userId
+    });
+  });
 });
 
 mongoose.connect(process.env.MONGO_URI, {
@@ -201,3 +281,23 @@ mongoose.connect(process.env.MONGO_URI, {
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
+
+// Example: controllers/groupController.js
+exports.createGroup = async (req, res) => {
+  const { name, description } = req.body;
+  const userId = req.user.id; // or however you get the current user
+
+  // 1. Create the group
+  const group = await Group.create({
+    name,
+    description,
+    members: [userId], // Add creator as member
+    // ...other fields
+  });
+
+  // 2. Add group to user's chat list (if you have such a field)
+  await User.findByIdAndUpdate(userId, { $push: { groups: group._id } });
+
+  // 3. Return the group
+  res.json(group);
+};

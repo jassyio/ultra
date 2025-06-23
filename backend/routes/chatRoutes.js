@@ -2,9 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/authMiddleware");
-const Chat = require("../models/Chat");
-const User = require("../models/User");
-const mongoose = require("mongoose");
+const chatController = require("../controllers/chatController");
 
 // POST /api/chats - Create a new chat
 router.post("/", auth, async (req, res) => {
@@ -74,32 +72,7 @@ router.post("/", auth, async (req, res) => {
 });
 
 // GET /api/chats - Get all chats for the current user
-router.get("/", auth, async (req, res) => {
-  try {
-    const chats = await Chat.find({ 
-      participants: req.user.id 
-    })
-    .populate("participants", "name email avatar")
-    .sort({ updatedAt: -1 });
-
-    // Filter out current user from participants in each chat
-    const processedChats = chats.map(chat => {
-      const otherParticipant = chat.participants.find(p => p._id.toString() !== req.user.id);
-      return {
-        ...chat.toObject(),
-        participants: [otherParticipant]
-      };
-    });
-
-    res.json(processedChats);
-  } catch (err) {
-    console.error("Error fetching chats:", err);
-    res.status(500).json({ 
-      message: "Failed to fetch chats",
-      details: err.message
-    });
-  }
-});
+router.get("/", auth, chatController.getChats);
 
 // GET /api/chats/:chatId - Get a specific chat
 router.get("/:chatId", auth, async (req, res) => {

@@ -4,5 +4,7 @@ export const routeConfig = {
     "/communities": { title: "Communities" },
     "/calls": { title: "Calls" },
     "/updates": { title: "Updates" },
-  };
-  
+    "/groups/new": { title: "New Group" },
+    "/groups/:groupId": { title: "Group Chat" },
+    "/groups/:groupId/info": { title: "Group Info" },
+};

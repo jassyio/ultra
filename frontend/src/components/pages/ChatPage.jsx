@@ -11,8 +11,6 @@ import {
   ListItemIcon,
 } from "@mui/material";
 import TopNavbar from "../layout/TopNavbar";
-import MessageInput from "../chat/MessageInput";
-import Message from "../chat/Message";
 import FloatingButton from "../common/FloatingButton";
 import AddIcon from "@mui/icons-material/Add";
 import GroupIcon from "@mui/icons-material/Group";
@@ -36,8 +34,9 @@ const ChatPage = () => {
     loading,
     error,
     clearError,
+    fetchChats,
   } = useContext(ChatContext);
-  const { user, logout } = useContext(AuthContext); // <-- get logout from context
+  const { user, logout } = useContext(AuthContext);
   const { socket } = useContext(SocketContext);
   const [modalOpen, setModalOpen] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
@@ -57,7 +56,7 @@ const ChatPage = () => {
 
   // Menu item handlers
   const handleNewGroup = () => {
-    alert("New group (not implemented)");
+    navigate("/groups/new");
     handleMenuClose();
   };
   const handleNewBroadcast = () => {
@@ -77,8 +76,8 @@ const ChatPage = () => {
     handleMenuClose();
   };
   const handleLogout = () => {
-    logout(); // <-- clear user from context
-    navigate("/"); // Redirect to start page
+    logout();
+    navigate("/");
     handleMenuClose();
   };
 
@@ -93,6 +92,11 @@ const ChatPage = () => {
       };
     }
   }, [socket]);
+
+  // Fetch chats on mount
+  useEffect(() => {
+    fetchChats();
+  }, [fetchChats]);
 
   // Get chat partner from chat list
   const chatPartner =
@@ -204,9 +208,22 @@ const ChatPage = () => {
           <Box sx={{ flex: 1, overflowY: "auto", p: 1 }}>
             {chats.length > 0 ? (
               chats.map((chat) => {
-                const partner = chat.participants.find(
-                  (p) => p._id !== user?.id
-                );
+                // Detect if this is a group (has members) or a direct chat (has participants)
+                const isGroup = Array.isArray(chat.members);
+                let displayName, displayAvatar;
+
+                if (isGroup) {
+                  displayName = chat.name;
+                  displayAvatar = "/default-group-avatar.png";
+                } else {
+                  // Defensive: check if participants exists and has at least one user
+                  const partner = Array.isArray(chat.participants) && chat.participants.length > 0
+                    ? chat.participants[0]
+                    : null;
+                  displayName = partner?.name || "Unknown";
+                  displayAvatar = partner?.avatar || "/default-avatar.png";
+                }
+
                 return (
                   <Box
                     key={`chat-${chat._id}`}
@@ -225,13 +242,13 @@ const ChatPage = () => {
                     }}
                   >
                     <Avatar
-                      src={partner?.avatar || "/default-avatar.png"}
-                      alt={partner?.name}
+                      src={displayAvatar}
+                      alt={displayName}
                       sx={{ width: 48, height: 48, mr: 2 }}
                     />
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                        {partner?.name}
+                        {displayName}
                       </Typography>
                       {chat.lastMessage && (
                         <Typography
@@ -271,6 +288,7 @@ const ChatPage = () => {
       )}
 
       <AddChatModal open={modalOpen} onClose={() => setModalOpen(false)} />
+
     </Box>
   );
 };

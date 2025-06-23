@@ -264,7 +264,7 @@ export const ChatProvider = ({ children }) => {
         fetchMessagesForChat,
         addMessageToChat,
         updateChatWithNewMessage,
-        refreshChats: fetchChats,
+         fetchChats,
         loading,
         error,
         setError,
