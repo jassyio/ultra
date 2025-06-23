@@ -22,6 +22,7 @@ const TopNavbar = ({
   onBack,
   onMoreClick,
   moreButtonRef,
+  actions, // <-- Add this line
 }) => {
   return (
     <AppBar position="fixed" color="default" elevation={1}>
@@ -58,12 +59,21 @@ const TopNavbar = ({
             </Typography>
 
             <Box sx={{ flexGrow: 1 }} />
-            <IconButton>
-              <Phone fontSize="small" />
-            </IconButton>
-            <IconButton>
-              <VideoCall fontSize="small" />
-            </IconButton>
+            {/* Render custom actions if provided, else default call/video buttons */}
+            {actions ? (
+              <Box sx={{ display: "flex", gap: 1 }}>
+                {actions}
+              </Box>
+            ) : (
+              <>
+                <IconButton>
+                  <Phone fontSize="small" />
+                </IconButton>
+                <IconButton>
+                  <VideoCall fontSize="small" />
+                </IconButton>
+              </>
+            )}
           </>
         ) : (
           <>

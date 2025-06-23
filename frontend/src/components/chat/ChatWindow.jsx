@@ -1,12 +1,16 @@
-import { useContext, useEffect, useRef } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { ChatContext } from "../../context/ChatContext";
 import { SocketContext } from "../../context/SocketContext";
 import { AuthContext } from "../../context/AuthContext";
-import { Box } from "@mui/material";
+import { Box, IconButton, Tooltip } from "@mui/material";
 import Message from "./Message";
 import MessageInput from "./MessageInput";
 import TopNavbar from "../layout/TopNavbar";
+import GroupAddIcon from "@mui/icons-material/GroupAdd";
+import PeopleIcon from "@mui/icons-material/People";
 import axios from "axios";
+import AddGroupMemberModal from "../groups/AddGroupMemberModal";
+import GroupInfo from "../groups/GroupInfo";
 
 const ChatWindow = () => {
   const {
@@ -23,6 +27,10 @@ const ChatWindow = () => {
   const { socket, isConnected } = useContext(SocketContext);
 
   const messagesEndRef = useRef(null);
+
+  // Add state for modals
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [showMembersModal, setShowMembersModal] = useState(false);
 
   useEffect(() => {
     if (selectedChat?._id) {
@@ -59,6 +67,7 @@ const ChatWindow = () => {
   let chatPartner = null;
   let chatTitle = "Chat";
   let chatAvatar = "/default-avatar.png";
+  let isGroup = false;
 
   if (chat) {
     if (Array.isArray(chat.participants)) {
@@ -68,6 +77,7 @@ const ChatWindow = () => {
       chatAvatar = chatPartner?.avatar || "/default-avatar.png";
     } else if (Array.isArray(chat.members)) {
       // Group chat
+      isGroup = true;
       chatTitle = chat.name || "Group";
       chatAvatar = "/default-group-avatar.png";
     }
@@ -136,6 +146,22 @@ const ChatWindow = () => {
         avatar={chatAvatar}
         showBackButton={!!selectedChat}
         onBack={() => setSelectedChat(null)}
+        actions={
+          isGroup && (
+            <>
+              <Tooltip title="View Members">
+                <IconButton onClick={() => setShowMembersModal(true)}>
+                  <PeopleIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Add Members">
+                <IconButton onClick={() => setShowAddMemberModal(true)}>
+                  <GroupAddIcon />
+                </IconButton>
+              </Tooltip>
+            </>
+          )
+        }
       />
 
       <Box
@@ -196,6 +222,23 @@ const ChatWindow = () => {
           disabled={!isConnected}
         />
       </Box>
+
+      {isGroup && showAddMemberModal && (
+        <AddGroupMemberModal
+          groupId={chat._id}
+          onClose={() => setShowAddMemberModal(false)}
+          onMemberAdded={() => {
+            setShowAddMemberModal(false);
+            // Optionally refresh group info or members here
+          }}
+        />
+      )}
+      {isGroup && showMembersModal && (
+        <GroupInfo
+          group={chat}
+          onClose={() => setShowMembersModal(false)}
+        />
+      )}
     </Box>
   );
 };
