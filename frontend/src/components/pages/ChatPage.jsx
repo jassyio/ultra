@@ -99,11 +99,14 @@ const ChatPage = () => {
   }, [fetchChats]);
 
   // Get chat partner from chat list
-  const chatPartner =
-    selectedChat &&
-    chats.find((c) => c._id === selectedChat._id)?.participants.find(
-      (p) => p._id !== user?.id
-    );
+  const chatPartner = (() => {
+    if (!selectedChat) return null;
+    const chat = chats.find((c) => c._id === selectedChat._id);
+    if (chat && Array.isArray(chat.participants)) {
+      return chat.participants.find((p) => p._id !== user?.id);
+    }
+    return null;
+  })();
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>

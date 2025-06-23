@@ -54,11 +54,26 @@ const ChatWindow = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages[selectedChat?._id]?.length]);
 
-  const chatPartner = chats
-    .find((c) => c._id === selectedChat?._id)
-    ?.participants.find((p) => p._id !== user?.id);
+  const chat = chats.find((c) => c._id === selectedChat?._id);
 
-  if (!selectedChat || !chatPartner) {
+  let chatPartner = null;
+  let chatTitle = "Chat";
+  let chatAvatar = "/default-avatar.png";
+
+  if (chat) {
+    if (Array.isArray(chat.participants)) {
+      // Direct chat
+      chatPartner = chat.participants.find((p) => p._id !== user?.id);
+      chatTitle = chatPartner?.name || "Chat";
+      chatAvatar = chatPartner?.avatar || "/default-avatar.png";
+    } else if (Array.isArray(chat.members)) {
+      // Group chat
+      chatTitle = chat.name || "Group";
+      chatAvatar = "/default-group-avatar.png";
+    }
+  }
+
+  if (!selectedChat || (!chatPartner && !Array.isArray(chat?.members))) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
         Select a chat to start messaging
@@ -117,8 +132,8 @@ const ChatWindow = () => {
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <TopNavbar
-        title={chatPartner?.name || "Chat"}
-        avatar={chatPartner?.avatar || "/default-avatar.png"}
+        title={chatTitle}
+        avatar={chatAvatar}
         showBackButton={!!selectedChat}
         onBack={() => setSelectedChat(null)}
       />

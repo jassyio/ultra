@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { FaArrowLeft, FaEllipsisV, FaUsers } from "react-icons/fa";
+import { FaArrowLeft, FaEllipsisV, FaUsers, FaUserPlus } from "react-icons/fa";
 import socket from "../../socket";
 import groupService from "../../api/groupService";
 import MessageInput from "../chat/MessageInput";
 import LoadingScreen from "../common/LoadingScreen";
 import useAuth from "../../hooks/useAuth";
+import AddGroupMemberModal from "./AddGroupMemberModal"; // <-- You will create this
 
 const GroupChat = () => {
   const { groupId } = useParams();
@@ -15,6 +16,7 @@ const GroupChat = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showAddMember, setShowAddMember] = useState(false); // NEW
   const messagesEndRef = useRef(null);
   
   // Connect to socket and fetch initial data
@@ -86,6 +88,17 @@ const GroupChat = () => {
     navigate(`/groups/${groupId}/info`);
   };
 
+  // After fetching group, check if user is admin
+  const isAdmin = group?.admins?.some(a => a._id === user._id);
+
+  // Handler for adding member
+  const handleMemberAdded = async () => {
+    // Refresh group info after adding member
+    const groupResponse = await groupService.getGroupById(groupId);
+    setGroup(groupResponse.data);
+    setShowAddMember(false);
+  };
+
   if (loading) {
     return <LoadingScreen message="Loading group chat..." />;
   }
@@ -126,6 +139,16 @@ const GroupChat = () => {
           </p>
         </div>
         
+        {/* Only show add member if admin */}
+        {isAdmin && (
+          <button
+            className="text-green-600 mr-2"
+            title="Add member"
+            onClick={() => setShowAddMember(true)}
+          >
+            <FaUserPlus />
+          </button>
+        )}
         <button onClick={handleOpenInfo} className="text-gray-500">
           <FaEllipsisV />
         </button>
@@ -167,6 +190,15 @@ const GroupChat = () => {
       
       {/* Message Input */}
       <MessageInput onSendMessage={handleSendMessage} />
+
+      {/* Add Member Modal */}
+      {showAddMember && (
+        <AddGroupMemberModal
+          groupId={groupId}
+          onClose={() => setShowAddMember(false)}
+          onMemberAdded={handleMemberAdded}
+        />
+      )}
     </div>
   );
 };

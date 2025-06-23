@@ -30,6 +30,7 @@ const GroupsPage = () => {
   };
 
   const handleCreateGroup = async (groupData) => {
+    console.log("Creating group with data:", groupData); // Add this
     try {
       const response = await groupService.createGroup(groupData);
       setGroups([...groups, response.data]);

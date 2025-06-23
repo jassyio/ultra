@@ -5,12 +5,31 @@ const Message = require('../models/Message');
 // Create a new group
 exports.createGroup = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, members } = req.body;
     const userId = req.user._id;
 
     if (!name) {
       return res.status(400).json({ success: false, message: 'Group name is required' });
     }
+
+    // Ensure members is an array and filter out duplicates and the creator
+    let memberIds = Array.isArray(members) ? members.filter(id => id !== userId.toString()) : [];
+    memberIds = [...new Set(memberIds)]; // Remove duplicates
+
+    // Always include the creator as a member and admin
+    if (!memberIds.includes(userId.toString())) {
+      memberIds.unshift(userId.toString());
+    }
+
+    // Check all member IDs are registered users
+    const foundUsers = await User.find({ _id: { $in: memberIds } });
+    if (foundUsers.length < 2) {
+      // Less than 2 means only the creator or no valid members
+      return res.status(400).json({ success: false, message: 'Add at least one valid registered user.' });
+    }
+
+    // Build members array for schema
+    const membersArr = foundUsers.map(u => ({ user: u._id }));
 
     // Create new group
     const newGroup = new Group({
@@ -18,7 +37,7 @@ exports.createGroup = async (req, res) => {
       description,
       creator: userId,
       admins: [userId],
-      members: [{ user: userId }]
+      members: membersArr
     });
 
     await newGroup.save();
@@ -27,7 +46,7 @@ exports.createGroup = async (req, res) => {
     const group = await Group.findById(newGroup._id)
       .populate('creator', 'name email')
       .populate('admins', 'name email')
-      .populate('members.user', 'name email');
+      .populate('members.user', 'name email avatar');
 
     res.status(201).json({
       success: true,
