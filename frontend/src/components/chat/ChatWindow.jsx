@@ -2,15 +2,15 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { ChatContext } from "../../context/ChatContext";
 import { SocketContext } from "../../context/SocketContext";
 import { AuthContext } from "../../context/AuthContext";
-import { Box, IconButton, Tooltip } from "@mui/material";
+import { Box, IconButton, Tooltip, Dialog, Tabs, Tab } from "@mui/material";
 import Message from "./Message";
 import MessageInput from "./MessageInput";
 import TopNavbar from "../layout/TopNavbar";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import PeopleIcon from "@mui/icons-material/People";
-import axios from "axios";
 import AddGroupMemberModal from "../groups/AddGroupMemberModal";
 import GroupInfo from "../groups/GroupInfo";
+import { useTheme } from "@mui/material/styles";
 
 const ChatWindow = () => {
   const {
@@ -28,9 +28,9 @@ const ChatWindow = () => {
 
   const messagesEndRef = useRef(null);
 
-  // Add state for modals
-  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
-  const [showMembersModal, setShowMembersModal] = useState(false);
+  // Single modal state and tab index
+  const [groupModalOpen, setGroupModalOpen] = useState(false);
+  const [groupTab, setGroupTab] = useState(0);
 
   useEffect(() => {
     if (selectedChat?._id) {
@@ -150,12 +150,22 @@ const ChatWindow = () => {
           isGroup && (
             <>
               <Tooltip title="View Members">
-                <IconButton onClick={() => setShowMembersModal(true)}>
+                <IconButton
+                  onClick={() => {
+                    setGroupTab(0);
+                    setGroupModalOpen(true);
+                  }}
+                >
                   <PeopleIcon />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Add Members">
-                <IconButton onClick={() => setShowAddMemberModal(true)}>
+                <IconButton
+                  onClick={() => {
+                    setGroupTab(1);
+                    setGroupModalOpen(true);
+                  }}
+                >
                   <GroupAddIcon />
                 </IconButton>
               </Tooltip>
@@ -223,21 +233,46 @@ const ChatWindow = () => {
         />
       </Box>
 
-      {isGroup && showAddMemberModal && (
-        <AddGroupMemberModal
-          groupId={chat._id}
-          onClose={() => setShowAddMemberModal(false)}
-          onMemberAdded={() => {
-            setShowAddMemberModal(false);
-            // Optionally refresh group info or members here
-          }}
-        />
-      )}
-      {isGroup && showMembersModal && (
-        <GroupInfo
-          group={chat}
-          onClose={() => setShowMembersModal(false)}
-        />
+      {/* Group Management Modal with Tabs */}
+      {isGroup && (
+        <Dialog
+          open={groupModalOpen}
+          onClose={() => setGroupModalOpen(false)}
+          maxWidth="xs"
+          fullWidth
+        >
+          <Box sx={{ p: 2, minWidth: 320 }}>
+            <Tabs
+              value={groupTab}
+              onChange={(_, v) => setGroupTab(v)}
+              centered
+            >
+              <Tab label="Members" />
+              <Tab label="Add Member" />
+              <Tab label="Info" />
+            </Tabs>
+            <Box sx={{ mt: 2 }}>
+              {groupTab === 0 && (
+                <GroupInfo group={chat} onClose={() => setGroupModalOpen(false)} />
+              )}
+              {groupTab === 1 && (
+                <AddGroupMemberModal
+                  groupId={chat._id}
+                  onClose={() => setGroupModalOpen(false)}
+                  onMemberAdded={() => setGroupModalOpen(false)}
+                />
+              )}
+              {groupTab === 2 && (
+                <Box sx={{ p: 2 }}>
+                  <strong>Group Name:</strong> {chat.name}
+                  <br />
+                  <strong>Created:</strong> {chat.createdAt}
+                  {/* Add more info as needed */}
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </Dialog>
       )}
     </Box>
   );
