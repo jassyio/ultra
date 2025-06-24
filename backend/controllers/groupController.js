@@ -188,80 +188,40 @@ exports.updateGroup = async (req, res) => {
 // Add a member to the group
 exports.addMember = async (req, res) => {
   try {
-    const groupId = req.params.groupId;
-    const userId = req.user._id;
+    const { groupId } = req.params;
     const { memberId } = req.body;
 
     if (!memberId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Member ID is required'
-      });
+      return res.status(400).json({ message: "Member ID is required" });
     }
 
-    // Find the group
     const group = await Group.findById(groupId);
-
     if (!group) {
-      return res.status(404).json({
-        success: false,
-        message: 'Group not found'
-      });
+      return res.status(404).json({ message: "Group not found" });
     }
 
-    // Check if the user is an admin
-    const isAdmin = group.admins.some(admin => 
-      admin.toString() === userId.toString()
-    );
-
-    if (!isAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: 'Only admins can add members'
-      });
+    // Ensure group.members is defined and is an array
+    if (!Array.isArray(group.members)) {
+      group.members = [];
     }
 
-    // Check if the member already exists
-    const memberExists = group.members.some(member => 
-      member.user.toString() === memberId.toString()
-    );
+    // Check if the member is already in the group
+    const isMemberAlreadyAdded = group.members.some((member) => {
+      return member.toString() === memberId.toString();
+    });
 
-    if (memberExists) {
-      return res.status(400).json({
-        success: false,
-        message: 'User is already a member of this group'
-      });
+    if (isMemberAlreadyAdded) {
+      return res.status(400).json({ message: "Member is already in the group" });
     }
 
-    // Check if user exists
-    const memberUser = await User.findById(memberId);
-    if (!memberUser) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    // Add the member
-    group.members.push({ user: memberId });
+    // Add the member to the group
+    group.members.push(memberId);
     await group.save();
 
-    // Fetch updated group with populated fields
-    const updatedGroup = await Group.findById(groupId)
-      .populate('creator', 'name email')
-      .populate('admins', 'name email')
-      .populate('members.user', 'name email');
-
-    res.status(200).json({
-      success: true,
-      data: updatedGroup
-    });
+    res.status(200).json({ message: "Member added successfully" });
   } catch (error) {
-    console.error('Add member error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to add member'
-    });
+    console.error("Add member error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 

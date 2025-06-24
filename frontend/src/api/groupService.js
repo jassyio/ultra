@@ -16,7 +16,20 @@ const getUserGroups = () => {
   });
 };
 
+const groupService = {
+  addMember: async (groupId, userId) => {
+    const token = localStorage.getItem("token");
+    const response = await axios.post(
+      `http://localhost:3001/api/groups/${groupId}/members`,
+      { memberId: userId }, // Update field name if required
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  },
+};
+
 export default {
   createGroup,
   getUserGroups,
+  ...groupService,
 };

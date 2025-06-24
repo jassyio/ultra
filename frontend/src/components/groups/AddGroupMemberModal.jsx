@@ -9,6 +9,7 @@ const AddGroupMemberModal = ({ groupId, onClose, onMemberAdded }) => {
   const [adding, setAdding] = useState(false);
   const [foundUser, setFoundUser] = useState(null);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState(""); // State for success message
 
   const handleCheckEmail = async () => {
     setError("");
@@ -39,6 +40,7 @@ const AddGroupMemberModal = ({ groupId, onClose, onMemberAdded }) => {
 
   const handleAddMember = async () => {
     if (!foundUser) return;
+    console.log("Adding member with ID:", foundUser.id); // Debug log
     setAdding(true);
     setError("");
     try {
@@ -46,10 +48,13 @@ const AddGroupMemberModal = ({ groupId, onClose, onMemberAdded }) => {
       setEmail("");
       setFoundUser(null);
       if (onMemberAdded) onMemberAdded();
+      setError(""); // Clear any previous errors
+      setSuccessMessage("Member added successfully!"); // Set success message
     } catch (err) {
+      console.error("Error adding member:", err); // Log the error for debugging
       setError(
         err.response?.data?.message ||
-          "Could not add member. They may already be in the group."
+          "Could not add member. Please try again later."
       );
     } finally {
       setAdding(false);
@@ -62,6 +67,7 @@ const AddGroupMemberModal = ({ groupId, onClose, onMemberAdded }) => {
     setError("");
     setChecking(false);
     setAdding(false);
+    setSuccessMessage(""); // Clear success message on close
     onClose();
   };
 
@@ -78,6 +84,11 @@ const AddGroupMemberModal = ({ groupId, onClose, onMemberAdded }) => {
           {error && (
             <div className="mb-3 p-2 bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 rounded">
               {error}
+            </div>
+          )}
+          {successMessage && (
+            <div className="mb-3 p-2 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 rounded">
+              {successMessage}
             </div>
           )}
           {!foundUser ? (
