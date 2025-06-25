@@ -8,9 +8,11 @@ import MessageInput from "./MessageInput";
 import TopNavbar from "../layout/TopNavbar";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import PeopleIcon from "@mui/icons-material/People";
+import CallIcon from "@mui/icons-material/Call";
 import AddGroupMemberModal from "../groups/AddGroupMemberModal";
 import GroupInfo from "../groups/GroupInfo";
 import { useTheme } from "@mui/material/styles";
+import { Search, MoreVert } from "@mui/icons-material";
 
 const ChatWindow = () => {
   const {
@@ -147,7 +149,7 @@ const ChatWindow = () => {
         showBackButton={!!selectedChat}
         onBack={() => setSelectedChat(null)}
         actions={
-          isGroup && (
+          isGroup ? (
             <>
               <Tooltip title="View Members">
                 <IconButton
@@ -156,7 +158,7 @@ const ChatWindow = () => {
                     setGroupModalOpen(true);
                   }}
                 >
-                  <PeopleIcon />
+                  <PeopleIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Add Members">
@@ -166,7 +168,47 @@ const ChatWindow = () => {
                     setGroupModalOpen(true);
                   }}
                 >
-                  <GroupAddIcon />
+                  <GroupAddIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Start Group Call">
+                <IconButton
+                  onClick={() => {
+                    console.log("Initiating group call...");
+                    socket.emit("startGroupCall", { groupId: chat._id });
+                    // Placeholder for navigation logic
+                    console.log("Navigating to group call interface...");
+                  }}
+                >
+                  <CallIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </>
+          ) : (
+            <>
+              <Tooltip title="Start Call">
+                <IconButton
+                  onClick={() => {
+                    console.log("Initiating one-on-one call...");
+                    socket.emit("startDirectCall", {
+                      chatId: chat._id,
+                      recipientId: chatPartner?._id,
+                    });
+                    // Placeholder for navigation logic
+                    console.log("Navigating to one-on-one call interface...");
+                  }}
+                >
+                  <CallIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Search">
+                <IconButton>
+                  <Search fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="More Options">
+                <IconButton>
+                  <MoreVert fontSize="small" />
                 </IconButton>
               </Tooltip>
             </>
