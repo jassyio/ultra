@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Outlet } from "react-router-dom";
 import { FaArrowLeft, FaEllipsisV, FaUsers, FaUserPlus } from "react-icons/fa";
 import socket from "../../socket";
 import groupService from "../../api/groupService";
@@ -10,13 +10,20 @@ import AddGroupMemberModal from "./AddGroupMemberModal"; // <-- You will create 
 
 const GroupChat = () => {
   const { groupId } = useParams();
+  console.log("GroupChat Params:", groupId); // Debug log
+
+  if (!groupId) {
+    console.error("Group ID is undefined");
+    return <div>Invalid group ID</div>;
+  }
+
   const navigate = useNavigate();
   const { user } = useAuth();
   const [group, setGroup] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showAddMember, setShowAddMember] = useState(false); // NEW
+  const [showAddMember, setShowAddMember] = useState(false);
   const messagesEndRef = useRef(null);
   
   // Connect to socket and fetch initial data
@@ -161,29 +168,30 @@ const GroupChat = () => {
             No messages yet
           </div>
         ) : (
-          messages.map((message) => (
-            <div 
-              key={message._id}
-              className={`mb-2 max-w-xs p-3 rounded-lg ${
-                message.sender._id === user._id 
-                  ? "ml-auto bg-green-100 dark:bg-green-800" 
-                  : "bg-white dark:bg-gray-700"
-              }`}
-            >
-              {message.sender._id !== user._id && (
-                <p className="text-xs font-semibold text-green-500">
-                  {message.sender.name}
+          messages.map((message) => {
+            const isSender = message.sender._id === user._id;
+            return (
+              <div 
+                key={message._id}
+                className={`mb-2 max-w-xs p-3 rounded-lg ${
+                  isSender ? "ml-auto bg-green-100 dark:bg-green-800" : "bg-white dark:bg-gray-700"
+                }`}
+              >
+                {!isSender && (
+                  <p className="text-xs font-semibold text-green-500">
+                    {message.sender.name}
+                  </p>
+                )}
+                <p>{message.content}</p>
+                <p className="text-xs text-gray-500 text-right">
+                  {new Date(message.createdAt).toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
                 </p>
-              )}
-              <p>{message.content}</p>
-              <p className="text-xs text-gray-500 text-right">
-                {new Date(message.createdAt).toLocaleTimeString([], { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                })}
-              </p>
-            </div>
-          ))
+              </div>
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -199,6 +207,8 @@ const GroupChat = () => {
           onMemberAdded={handleMemberAdded}
         />
       )}
+
+      <Outlet /> {/* Renders nested routes */}
     </div>
   );
 };

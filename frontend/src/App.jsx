@@ -20,6 +20,7 @@ import VerificationPage from "./components/pages/VerificationPage";
 import SettingsPage from "./components/pages/SettingsPage"; // <-- Add this import
 import CreateGroupPage from "./components/pages/CreateGroupPage";
 import GroupChat from "./components/groups/GroupChat"; // <-- Import GroupChat component
+import GroupInfo from "./components/groups/GroupInfo";
 
 import MainLayout from "./components/layout/MainLayout";
 import PrivateRoute from "./routes/PrivateRoute";
@@ -47,7 +48,8 @@ const App = () => {
           <Route path="/updates" element={<PrivateRoute><UpdatesPage /></PrivateRoute>} />
           <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} /> {/* <-- Add this route */}
           <Route path="/groups/new" element={<CreateGroupPage />} />
-          <Route path="/groups/:groupId" element={<GroupChat />} /> {/* <-- Add this route */}
+          <Route path="/groups/:groupId" element={<GroupChat />} />
+          <Route path="/groups/:groupId/info" element={<GroupInfo />} />
 
           <Route path="*" element={user ? <Navigate to="/chat" /> : <Navigate to="/" />} />
         </Routes>
