@@ -13,6 +13,7 @@ import AddGroupMemberModal from "../groups/AddGroupMemberModal";
 import GroupInfo from "../groups/GroupInfo";
 import { useTheme } from "@mui/material/styles";
 import { Search, MoreVert } from "@mui/icons-material";
+import CallInterface from "../calls/CallInterface";
 
 const ChatWindow = () => {
   const {
@@ -33,6 +34,8 @@ const ChatWindow = () => {
   // Single modal state and tab index
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   const [groupTab, setGroupTab] = useState(0);
+  const [callActive, setCallActive] = useState(false); // New state for call active
+  const [isVideoCall, setIsVideoCall] = useState(false); // State to toggle between voice and video calls
 
   useEffect(() => {
     if (selectedChat?._id) {
@@ -143,178 +146,170 @@ const ChatWindow = () => {
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <TopNavbar
-        title={chatTitle}
-        avatar={chatAvatar}
-        showBackButton={!!selectedChat}
-        onBack={() => setSelectedChat(null)}
-        actions={
-          isGroup ? (
-            <>
-              <Tooltip title="View Members">
-                <IconButton
-                  onClick={() => {
-                    setGroupTab(0);
-                    setGroupModalOpen(true);
-                  }}
-                >
-                  <PeopleIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Add Members">
-                <IconButton
-                  onClick={() => {
-                    setGroupTab(1);
-                    setGroupModalOpen(true);
-                  }}
-                >
-                  <GroupAddIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Start Group Call">
-                <IconButton
-                  onClick={() => {
-                    console.log("Initiating group call...");
-                    socket.emit("startGroupCall", { groupId: chat._id });
-                    // Placeholder for navigation logic
-                    console.log("Navigating to group call interface...");
-                  }}
-                >
-                  <CallIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </>
-          ) : (
-            <>
-              <Tooltip title="Start Call">
-                <IconButton
-                  onClick={() => {
-                    console.log("Initiating one-on-one call...");
-                    socket.emit("startDirectCall", {
-                      chatId: chat._id,
-                      recipientId: chatPartner?._id,
-                    });
-                    // Placeholder for navigation logic
-                    console.log("Navigating to one-on-one call interface...");
-                  }}
-                >
-                  <CallIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Search">
-                <IconButton>
-                  <Search fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="More Options">
-                <IconButton>
-                  <MoreVert fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </>
-          )
-        }
-      />
-
-      <Box
-        sx={{
-          flex: 1,
-          overflowY: "auto",
-          bgcolor: "#f0f2f5",
-          pb: 2,
-          display: "flex",
-          flexDirection: "column",
-        }}
-        className="dark:bg-gray-900"
-      >
-        <Box sx={{ py: 3, px: "5%" }}>
-          {chatMessages.length > 0 ? (
-            chatMessages.map((msg, index) => (
-              <Message
-                key={msg._id || msg.tempId || index}
-                message={msg}
-                isOwnMessage={
-                  (typeof msg.sender === "object"
-                    ? msg.sender._id
-                    : msg.sender) === user.id
-                }
-                isPending={msg.isPending}
-              />
-            ))
-          ) : (
-            <Box
-              sx={{
-                textAlign: "center",
-                color: "#8696a0",
-                mt: 10,
-                fontSize: "0.875rem",
-              }}
-            >
-              No messages yet
-            </Box>
-          )}
-          <div ref={messagesEndRef} />
-        </Box>
-      </Box>
-
-      <Box
-        sx={{
-          position: "sticky",
-          bottom: 0,
-          width: "100%",
-          bgcolor: "background.paper",
-          borderTop: "1px solid",
-          borderColor: "divider",
-        }}
-        className="dark:bg-gray-800 dark:border-gray-700"
-      >
-        <MessageInput
-          chatId={selectedChat._id}
-          onMessageSent={handleSendMessage}
-          disabled={!isConnected}
+      {/* Hide TopNavbar and render CallInterface */}
+      {callActive ? (
+        <CallInterface
+          isVideoCall={isVideoCall} // State to toggle between voice and video calls
+          participants={isGroup ? chat.members : [chatPartner]} // Use chat.members for group calls
+          groupName={isGroup ? chat.name : null} // Pass group name for group calls
+          groupAvatar={isGroup ? chat.avatar : null} // Pass group avatar for group calls
+          onEndCall={() => {
+            console.log("Call ended");
+            setCallActive(false); // Reset call state
+          }}
         />
-      </Box>
+      ) : (
+        <>
+          <TopNavbar
+            title={chatTitle}
+            avatar={chatAvatar}
+            showBackButton={!!selectedChat}
+            onBack={() => setSelectedChat(null)}
+            actions={
+              isGroup ? (
+                <>
+                  <Tooltip title="Start Group Call">
+                    <IconButton
+                      onClick={() => {
+                        if (!socket || !chat?._id) {
+                          console.error("Socket or chat ID is missing");
+                          return;
+                        }
+                        console.log("Initiating group call...");
+                        socket.emit("startGroupCall", {
+                          groupId: chat._id,
+                          participants: chat.members,
+                        });
+                        setCallActive(true); // Activate the call interface
+                        setIsVideoCall(true); // Set to video call mode
+                      }}
+                    >
+                      <CallIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </>
+              ) : (
+                <>
+                  <Tooltip title="Start Call">
+                    <IconButton
+                      onClick={() => {
+                        setCallActive(true);
+                        setIsVideoCall(false); // Set to true for video call
+                        console.log("Call started");
+                      }}
+                    >
+                      <CallIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </>
+              )
+            }
+          />
 
-      {/* Group Management Modal with Tabs */}
-      {isGroup && (
-        <Dialog
-          open={groupModalOpen}
-          onClose={() => setGroupModalOpen(false)}
-          maxWidth="xs"
-          fullWidth
-        >
-          <Box sx={{ p: 2, minWidth: 320 }}>
-            <Tabs
-              value={groupTab}
-              onChange={(_, v) => setGroupTab(v)}
-              centered
-            >
-              <Tab label="Members" />
-              <Tab label="Add Member" />
-              <Tab label="Info" />
-            </Tabs>
-            <Box sx={{ mt: 2 }}>
-              {groupTab === 0 && (
-                <GroupInfo group={chat} onClose={() => setGroupModalOpen(false)} />
-              )}
-              {groupTab === 1 && (
-                <AddGroupMemberModal
-                  groupId={chat._id}
-                  onClose={() => setGroupModalOpen(false)}
-                  onMemberAdded={() => setGroupModalOpen(false)}
-                />
-              )}
-              {groupTab === 2 && (
-                <Box sx={{ p: 2 }}>
-                  <strong>Group Name:</strong> {chat.name}
-                  <br />
-                  <strong>Created:</strong> {chat.createdAt}
-                  {/* Add more info as needed */}
+          <Box
+            sx={{
+              flex: 1,
+              overflowY: "auto",
+              bgcolor: "#f0f2f5",
+              pb: 2,
+              display: "flex",
+              flexDirection: "column",
+            }}
+            className="dark:bg-gray-900"
+          >
+            <Box sx={{ py: 3, px: "5%" }}>
+              {chatMessages.length > 0 ? (
+                chatMessages.map((msg, index) => (
+                  <Message
+                    key={msg._id || msg.tempId || index}
+                    message={msg}
+                    isOwnMessage={
+                      (typeof msg.sender === "object"
+                        ? msg.sender._id
+                        : msg.sender) === user.id
+                    }
+                    isPending={msg.isPending}
+                  />
+                ))
+              ) : (
+                <Box
+                  sx={{
+                    textAlign: "center",
+                    color: "#8696a0",
+                    mt: 10,
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  No messages yet
                 </Box>
               )}
+              <div ref={messagesEndRef} />
             </Box>
           </Box>
-        </Dialog>
+
+          <Box
+            sx={{
+              position: "sticky",
+              bottom: 0,
+              width: "100%",
+              bgcolor: "background.paper",
+              borderTop: "1px solid",
+              borderColor: "divider",
+            }}
+            className="dark:bg-gray-800 dark:border-gray-700"
+          >
+            <MessageInput
+              chatId={selectedChat._id}
+              onMessageSent={handleSendMessage}
+              disabled={!isConnected}
+            />
+          </Box>
+
+          {/* Group Management Modal with Tabs */}
+          {isGroup && (
+            <Dialog
+              open={groupModalOpen}
+              onClose={() => setGroupModalOpen(false)}
+              maxWidth="xs"
+              fullWidth
+            >
+              <Box sx={{ p: 2, minWidth: 320 }}>
+                <Tabs
+                  value={groupTab}
+                  onChange={(_, v) => setGroupTab(v)}
+                  centered
+                >
+                  <Tab label="Members" />
+                  <Tab label="Add Member" />
+                  <Tab label="Info" />
+                </Tabs>
+                <Box sx={{ mt: 2 }}>
+                  {groupTab === 0 && (
+                    <GroupInfo
+                      group={chat}
+                      onClose={() => setGroupModalOpen(false)}
+                    />
+                  )}
+                  {groupTab === 1 && (
+                    <AddGroupMemberModal
+                      groupId={chat._id}
+                      onClose={() => setGroupModalOpen(false)}
+                      onMemberAdded={() => setGroupModalOpen(false)}
+                    />
+                  )}
+                  {groupTab === 2 && (
+                    <Box sx={{ p: 2 }}>
+                      <strong>Group Name:</strong> {chat.name}
+                      <br />
+                      <strong>Created:</strong> {chat.createdAt}
+                      {/* Add more info as needed */}
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+            </Dialog>
+          )}
+        </>
       )}
     </Box>
   );
