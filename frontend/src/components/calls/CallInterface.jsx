@@ -2,14 +2,14 @@ import React, { useState, useEffect } from "react";
 import { Avatar, IconButton, Box, Typography, Button } from "@mui/material";
 import { Mic, MicOff, Videocam, Speaker, Chat, CallEnd } from "@mui/icons-material";
 
-const CallInterface = ({ participants, groupName, groupAvatar, onEndCall }) => {
+const CallInterface = ({ participants, groupName, groupAvatar, isVideoCall, onEndCall }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
-  const [isVideoCall, setIsVideoCall] = useState(false); // Initialize as voice call
+  const [isVideo, setIsVideo] = useState(isVideoCall); // Initialize with the isVideoCall prop
 
   useEffect(() => {
-    console.log(isVideoCall ? "Starting video call..." : "Starting voice call...");
-  }, [isVideoCall]);
+    console.log(isVideo ? "Starting video call..." : "Starting voice call...");
+  }, [isVideo]);
 
   const handleMuteToggle = () => {
     setIsMuted((prev) => !prev);
@@ -22,8 +22,8 @@ const CallInterface = ({ participants, groupName, groupAvatar, onEndCall }) => {
   };
 
   const handleVideoToggle = () => {
-    setIsVideoCall((prev) => !prev);
-    console.log(isVideoCall ? "Video call Off" : "Video call On");
+    setIsVideo((prev) => !prev);
+    console.log(isVideo ? "Video call Off" : "Video call On");
   };
 
   return (

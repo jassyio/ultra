@@ -14,6 +14,8 @@ import GroupInfo from "../groups/GroupInfo";
 import { useTheme } from "@mui/material/styles";
 import { Search, MoreVert } from "@mui/icons-material";
 import CallInterface from "../calls/CallInterface";
+import Videocam from "@mui/icons-material/Videocam";
+import axios from "axios";
 
 const ChatWindow = () => {
   const {
@@ -152,6 +154,7 @@ const ChatWindow = () => {
           participants={isGroup ? chat.members : [chatPartner]} // Use chat.members for group calls
           groupName={isGroup ? chat.name : null} // Pass group name for group calls
           groupAvatar={isGroup ? chat.avatar : null} // Pass group avatar for group calls
+          isVideoCall={isVideoCall} // Pass the isVideoCall state
           onEndCall={() => {
             console.log("Call ended");
             setCallActive(false); // Reset call state
@@ -180,9 +183,29 @@ const ChatWindow = () => {
                           participants: chat.members,
                         });
                         setCallActive(true); // Activate the call interface
+                        setIsVideoCall(false); // Start as voice call
                       }}
                     >
                       <CallIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Start Group Video Call">
+                    <IconButton
+                      onClick={() => {
+                        if (!socket || !chat?._id) {
+                          console.error("Socket or chat ID is missing");
+                          return;
+                        }
+                        console.log("Initiating group video call...");
+                        socket.emit("startGroupCall", {
+                          groupId: chat._id,
+                          participants: chat.members,
+                        });
+                        setCallActive(true); // Activate the call interface
+                        setIsVideoCall(true); // Start as video call
+                      }}
+                    >
+                      <Videocam fontSize="small" />
                     </IconButton>
                   </Tooltip>
                 </>
@@ -192,10 +215,22 @@ const ChatWindow = () => {
                     <IconButton
                       onClick={() => {
                         setCallActive(true);
+                        setIsVideoCall(false); // Start as voice call
                         console.log("Call started");
                       }}
                     >
                       <CallIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Start Video Call">
+                    <IconButton
+                      onClick={() => {
+                        setCallActive(true);
+                        setIsVideoCall(true); // Start as video call
+                        console.log("Video call started");
+                      }}
+                    >
+                      <Videocam fontSize="small" />
                     </IconButton>
                   </Tooltip>
                 </>
