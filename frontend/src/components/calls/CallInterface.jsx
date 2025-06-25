@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Avatar, IconButton, Box, Typography, Button } from "@mui/material";
-import { Mic, MicOff, Speaker, Chat, CallEnd } from "@mui/icons-material";
+import { Mic, MicOff, Videocam, Speaker, Chat, CallEnd } from "@mui/icons-material";
 
-const CallInterface = ({ isVideoCall, participants, groupName, groupAvatar, onEndCall }) => {
+const CallInterface = ({ participants, groupName, groupAvatar, onEndCall }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
+  const [isVideoCall, setIsVideoCall] = useState(false); // Initialize as voice call
 
   useEffect(() => {
     console.log(isVideoCall ? "Starting video call..." : "Starting voice call...");
@@ -18,6 +19,11 @@ const CallInterface = ({ isVideoCall, participants, groupName, groupAvatar, onEn
   const handleSpeakerToggle = () => {
     setIsSpeakerOn((prev) => !prev);
     console.log(isSpeakerOn ? "Speaker Off" : "Speaker On");
+  };
+
+  const handleVideoToggle = () => {
+    setIsVideoCall((prev) => !prev);
+    console.log(isVideoCall ? "Video call Off" : "Video call On");
   };
 
   return (
@@ -57,6 +63,9 @@ const CallInterface = ({ isVideoCall, participants, groupName, groupAvatar, onEn
       <Box sx={{ display: "flex", justifyContent: "center", gap: 4 }}>
         <IconButton onClick={handleSpeakerToggle} sx={{ color: "white" }}>
           <Speaker fontSize="large" />
+        </IconButton>
+        <IconButton onClick={handleVideoToggle} sx={{ color: "white" }}>
+          <Videocam fontSize="large" />
         </IconButton>
       </Box>
       <Box sx={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 1 }}>

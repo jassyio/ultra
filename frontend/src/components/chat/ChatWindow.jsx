@@ -149,7 +149,6 @@ const ChatWindow = () => {
       {/* Hide TopNavbar and render CallInterface */}
       {callActive ? (
         <CallInterface
-          isVideoCall={isVideoCall} // State to toggle between voice and video calls
           participants={isGroup ? chat.members : [chatPartner]} // Use chat.members for group calls
           groupName={isGroup ? chat.name : null} // Pass group name for group calls
           groupAvatar={isGroup ? chat.avatar : null} // Pass group avatar for group calls
@@ -181,7 +180,6 @@ const ChatWindow = () => {
                           participants: chat.members,
                         });
                         setCallActive(true); // Activate the call interface
-                        setIsVideoCall(true); // Set to video call mode
                       }}
                     >
                       <CallIcon fontSize="small" />
@@ -194,7 +192,6 @@ const ChatWindow = () => {
                     <IconButton
                       onClick={() => {
                         setCallActive(true);
-                        setIsVideoCall(false); // Set to true for video call
                         console.log("Call started");
                       }}
                     >
