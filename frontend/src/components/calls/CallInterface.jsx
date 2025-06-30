@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Avatar, IconButton, Box, Typography, Button } from "@mui/material";
-import { Mic, MicOff, Videocam, Speaker, Chat, CallEnd } from "@mui/icons-material";
+import { Mic, MicOff, Videocam, VideocamOff, Speaker, CallEnd } from "@mui/icons-material";
+import io from "socket.io-client";
+
+const socket = io("http://localhost:3001"); // Adjust the URL to your server
 
 const CallInterface = ({ participants, groupName, groupAvatar, isVideoCall, onEndCall }) => {
   const [isMuted, setIsMuted] = useState(false);
@@ -10,6 +13,41 @@ const CallInterface = ({ participants, groupName, groupAvatar, isVideoCall, onEn
   useEffect(() => {
     console.log(isVideo ? "Starting video call..." : "Starting voice call...");
   }, [isVideo]);
+
+  useEffect(() => {
+    if (participants && participants.length > 0) {
+      const caller = { name: "Current User", socketId: socket.id }; // Replace with actual user data
+      const callType = isVideo ? "video" : "voice";
+
+      socket.emit("startCall", {
+        callType,
+        participants,
+        caller,
+      });
+      console.log("📞 Emitting startCall event:", { callType, participants, caller });
+    }
+  }, [participants, isVideo]);
+
+  useEffect(() => {
+    socket.on("callIncoming", ({ callType, caller }) => {
+      console.log(`Incoming ${callType} call from ${caller.name}`);
+      alert(`Incoming ${callType} call from ${caller.name}`);
+    });
+
+    return () => {
+      socket.off("callIncoming");
+    };
+  }, []);
+
+  useEffect(() => {
+    socket.on("connect", () => {
+      console.log(`Frontend connected to server: ${socket.id}`);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Frontend disconnected from server");
+    });
+  }, []);
 
   const handleMuteToggle = () => {
     setIsMuted((prev) => !prev);
@@ -34,12 +72,7 @@ const CallInterface = ({ participants, groupName, groupAvatar, isVideoCall, onEn
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "space-between",
-        bgcolor: "#3a3a3a", // Plain gray background
-        backgroundImage: `
-          radial-gradient(circle, #3a3a3a 20%, #4a4a4a 40%, #3a3a3a 60%),
-          linear-gradient(45deg, #3a3a3a 25%, #4a4a4a 25%, #4a4a4a 50%, #3a3a3a 50%)
-        `,
-        backgroundSize: "cover",
+        bgcolor: "#000", // WhatsApp-like dark background
         color: "white",
         padding: 2,
       }}
@@ -48,11 +81,11 @@ const CallInterface = ({ participants, groupName, groupAvatar, isVideoCall, onEn
       <Avatar
         src={participants.length > 1 ? groupAvatar || "/default-group-avatar.png" : participants[0]?.avatar || "/default-avatar.png"}
         alt={participants.length > 1 ? groupName || "Group" : participants[0]?.name || "Participant"}
-        sx={{ width: 100, height: 100, marginTop: 1 }}
+        sx={{ width: 120, height: 120, marginTop: 2 }}
       />
 
       {/* Name and Status */}
-      <Typography variant="h5" sx={{ fontWeight: "bold", marginTop: 1 }}>
+      <Typography variant="h5" sx={{ fontWeight: "bold", marginTop: 2 }}>
         {participants.length > 1 ? groupName || "Group" : participants[0]?.name || "Participant"}
       </Typography>
       <Typography variant="subtitle1" sx={{ color: "gray", marginBottom: 3 }}>
@@ -65,15 +98,12 @@ const CallInterface = ({ participants, groupName, groupAvatar, isVideoCall, onEn
           <Speaker fontSize="large" />
         </IconButton>
         <IconButton onClick={handleVideoToggle} sx={{ color: "white" }}>
-          <Videocam fontSize="large" />
+          {isVideo ? <Videocam fontSize="large" /> : <VideocamOff fontSize="large" />}
         </IconButton>
       </Box>
       <Box sx={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 1 }}>
         <IconButton onClick={handleMuteToggle} sx={{ color: "white" }}>
           {isMuted ? <MicOff fontSize="large" /> : <Mic fontSize="large" />}
-        </IconButton>
-        <IconButton sx={{ color: "white" }}>
-          <Chat fontSize="large" />
         </IconButton>
       </Box>
 

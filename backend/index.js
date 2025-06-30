@@ -3,7 +3,9 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const http = require("http");
-const { Server } = require("socket.io");
+const socketIO = require("socket.io");
+const socketHandler = require("./socket");
+
 require("dotenv").config();
 
 const authRoutes = require("./routes/authRoutes");
@@ -11,11 +13,11 @@ const userRoutes = require("./routes/userRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const messageRoutes = require("./routes/messageRoutes");
-const groupRoutes = require('./routes/groupRoutes'); // Import groupRoutes
+const groupRoutes = require("./routes/groupRoutes"); // Import groupRoutes
 const Chat = require("./models/Chat");
 const Message = require("./models/Message"); // Import Message model
-const User = require('./models/User'); // Import User model
-const Group = require('./models/Group'); // Import Group model
+const User = require("./models/User"); // Import User model
+const Group = require("./models/Group"); // Import Group model
 
 const app = express();
 const server = http.createServer(app);
@@ -27,16 +29,18 @@ const allowedOrigins = [
   "https://ultra-frontend-zeta.vercel.app",
 ];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
@@ -45,18 +49,31 @@ app.use("/api/users", userRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/messages", messageRoutes);
-app.use('/api/groups', groupRoutes); // Use groupRoutes
+app.use("/api/groups", groupRoutes); // Use groupRoutes
 
 app.get("/", (req, res) => {
   res.send("🚀 Backend running successfully!");
 });
 
-const io = new Server(server, {
+const io = socketIO(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        "http://localhost:5173",
+        "https://ultra-frontend-zeta.vercel.app",
+      ];
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST"],
     credentials: true,
   },
 });
+
+socketHandler(io);
 
 let userSockets = new Map();
 let socketUsers = new Map();
@@ -71,19 +88,38 @@ io.use((socket, next) => {
 });
 
 io.on("connection", (socket) => {
-  const userId = socket.userId;
-  console.log(`🔌 Client connected - Socket: ${socket.id}, User: ${userId}`);
+  const userId = socket.handshake.auth.userId;
+  if (!userId) {
+    console.error("Authentication error: Missing userId");
+    return;
+  }
 
   userSockets.set(userId, socket.id);
   socketUsers.set(socket.id, userId);
 
-  socket.broadcast.emit("userOnline", userId);
+  console.log(`🔌 Client connected - Socket: ${socket.id}, User: ${userId}`);
 
   socket.on("disconnect", () => {
     console.log(`👋 Client disconnected - Socket: ${socket.id}, User: ${userId}`);
     userSockets.delete(userId);
     socketUsers.delete(socket.id);
-    socket.broadcast.emit("userOffline", userId);
+  });
+
+  // Handle call initiation
+  socket.on("startCall", ({ callType, participants, caller }) => {
+    console.log(`📞 Call started by ${caller.name} (${caller.socketId})`);
+    console.log(`Call type: ${callType}`);
+    console.log(`Participants:`, participants);
+
+    participants.forEach((participant) => {
+      const recipientSocketId = userSockets.get(participant._id.toString());
+      if (recipientSocketId) {
+        console.log(`Emitting callIncoming to ${participant.name} (${recipientSocketId})`);
+        io.to(recipientSocketId).emit("callIncoming", { callType, caller });
+      } else {
+        console.warn(`Socket ID missing for participant: ${participant.name}`);
+      }
+    });
   });
 
   socket.on("joinRoom", (chatId) => {
@@ -94,7 +130,7 @@ io.on("connection", (socket) => {
     console.log(`Room ${chatId} members:`, members);
     socket.emit("roomJoined", {
       chatId,
-      members: members.map(socketId => socketUsers.get(socketId)).filter(Boolean)
+      members: members.map((socketId) => socketUsers.get(socketId)).filter(Boolean),
     });
   });
 
@@ -107,7 +143,7 @@ io.on("connection", (socket) => {
     console.log(`✍️ User ${userId} typing in chat ${data.chatId}`);
     socket.to(data.chatId).emit("typing", {
       ...data,
-      sender: userId
+      sender: userId,
     });
   });
 
@@ -135,8 +171,8 @@ io.on("connection", (socket) => {
         sender: userId,
         content: message.content.trim(),
         chatId: message.chatId,
-        status: ["sent", "delivered", "read"].includes(message.status) 
-          ? message.status 
+        status: ["sent", "delivered", "read"].includes(message.status)
+          ? message.status
           : "sent",
       });
 
@@ -184,9 +220,9 @@ io.on("connection", (socket) => {
         stack: error.stack,
         attemptedData: message
       });
-      socket.emit("messageError", { 
+      socket.emit("messageError", {
         error: error.message,
-        originalMessage: message 
+        originalMessage: message
       });
     }
   });
@@ -211,7 +247,7 @@ io.on("connection", (socket) => {
       if (!message.content?.trim() || !message.groupId || !message.sender) {
         throw new Error("Missing required fields: content, groupId, or sender");
       }
-      
+
       if (message.sender !== userId) {
         throw new Error("Invalid sender ID");
       }
@@ -229,9 +265,9 @@ io.on("connection", (socket) => {
         mediaUrl: message.mediaUrl || null,
         readBy: [{ user: userId }] // Sender has read the message
       });
-      
+
       const savedMessage = await newMessage.save();
-      
+
       // Populate sender info
       await savedMessage.populate('sender', 'name email');
 
@@ -248,12 +284,12 @@ io.on("connection", (socket) => {
         readBy: savedMessage.readBy,
         createdAt: savedMessage.createdAt
       });
-      
+
     } catch (error) {
       console.error("❌ Error handling group message:", error);
-      socket.emit("groupMessageError", { 
+      socket.emit("groupMessageError", {
         error: error.message,
-        originalMessage: message 
+        originalMessage: message
       });
     }
   });
@@ -268,10 +304,11 @@ io.on("connection", (socket) => {
   });
 });
 
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => {
     console.error("❌ MongoDB connection error:", err);
@@ -282,22 +319,3 @@ server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
-// Example: controllers/groupController.js
-exports.createGroup = async (req, res) => {
-  const { name, description } = req.body;
-  const userId = req.user.id; // or however you get the current user
-
-  // 1. Create the group
-  const group = await Group.create({
-    name,
-    description,
-    members: [userId], // Add creator as member
-    // ...other fields
-  });
-
-  // 2. Add group to user's chat list (if you have such a field)
-  await User.findByIdAndUpdate(userId, { $push: { groups: group._id } });
-
-  // 3. Return the group
-  res.json(group);
-};

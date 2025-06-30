@@ -11,13 +11,15 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState({});
   const [isConnected, setIsConnected] = useState(false);
+  const [callState, setCallState] = useState(null); // Call state: ringing, accepted, rejected
+  const [incomingCall, setIncomingCall] = useState(null); // Incoming call details
   const { user } = useContext(AuthContext);
   const { updateChatWithNewMessage } = useContext(ChatContext);
 
   useEffect(() => {
     if (!user?.id) return;
 
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) return;
 
     const newSocket = io(SOCKET_SERVER_URL, {
@@ -34,10 +36,12 @@ export const SocketProvider = ({ children }) => {
     newSocket.on("connect", () => {
       setIsConnected(true);
       if (user?.id) newSocket.emit("userOnline", user.id);
+      console.log(`Frontend connected to server: ${newSocket.id}`);
     });
 
     newSocket.on("disconnect", () => {
       setIsConnected(false);
+      console.log("Frontend disconnected from server");
     });
 
     newSocket.on("connect_error", (error) => {
@@ -45,8 +49,49 @@ export const SocketProvider = ({ children }) => {
       console.error("❌ Socket connection error:", error);
     });
 
-    // Handle receiveMessage
-    newSocket.on("receiveMessage", (message) => {
+    setSocket(newSocket);
+
+    return () => {
+      if (newSocket) newSocket.disconnect();
+      setSocket(null);
+      setIsConnected(false);
+    };
+  }, [user?.id]); // Only user?.id as dependency
+
+  useEffect(() => {
+    if (!socket) {
+      console.error("Socket is not initialized");
+      return;
+    }
+
+    socket.on("callIncoming", ({ callType, caller }) => {
+      console.log(`Incoming ${callType} call from ${caller.name}`);
+      setIncomingCall({ callType, caller });
+      setCallState("ringing");
+    });
+
+    socket.on("callAccepted", ({ receiver }) => {
+      console.log(`Call accepted by ${receiver}`);
+      setCallState("accepted");
+    });
+
+    socket.on("callRejected", ({ receiver }) => {
+      console.log(`Call rejected by ${receiver}`);
+      setCallState("rejected");
+    });
+
+    return () => {
+      socket.off("callIncoming");
+      socket.off("callAccepted");
+      socket.off("callRejected");
+    };
+  }, [socket]);
+
+  // Handle receiveMessage
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("receiveMessage", (message) => {
       setMessages(prevMessages => {
         const chatMessages = prevMessages[message.chatId] || [];
         let replaced = false;
@@ -72,7 +117,7 @@ export const SocketProvider = ({ children }) => {
       updateChatWithNewMessage && updateChatWithNewMessage(message.chatId, message);
 
       if (message.sender !== user.id && message.status !== "delivered") {
-        newSocket.emit("messageDelivered", {
+        socket.emit("messageDelivered", {
           messageId: message._id,
           chatId: message.chatId
         });
@@ -80,7 +125,7 @@ export const SocketProvider = ({ children }) => {
     });
 
     // Handle messageSent (confirmation from server)
-    newSocket.on("messageSent", (message) => {
+    socket.on("messageSent", (message) => {
       setMessages(prevMessages => {
         const chatMessages = prevMessages[message.chatId] || [];
         let replaced = false;
@@ -107,7 +152,7 @@ export const SocketProvider = ({ children }) => {
     });
 
     // Handle messageDelivered (update status to delivered)
-    newSocket.on("messageDelivered", ({ messageId, chatId }) => {
+    socket.on("messageDelivered", ({ messageId, chatId }) => {
       setMessages(prevMessages => {
         const chatMessages = prevMessages[chatId] || [];
         const updatedMessages = chatMessages.map(msg =>
@@ -121,7 +166,7 @@ export const SocketProvider = ({ children }) => {
     });
 
     // Handle messageRead (update status to read)
-    newSocket.on("messageRead", ({ messageId, chatId }) => {
+    socket.on("messageRead", ({ messageId, chatId }) => {
       setMessages(prevMessages => {
         const chatMessages = prevMessages[chatId] || [];
         const updatedMessages = chatMessages.map(msg =>
@@ -134,14 +179,13 @@ export const SocketProvider = ({ children }) => {
       });
     });
 
-    setSocket(newSocket);
-
     return () => {
-      if (newSocket) newSocket.disconnect();
-      setSocket(null);
-      setIsConnected(false);
+      socket.off("receiveMessage");
+      socket.off("messageSent");
+      socket.off("messageDelivered");
+      socket.off("messageRead");
     };
-  }, [user?.id]); // Only user?.id as dependency
+  }, [socket, user.id, updateChatWithNewMessage]);
 
   // Send message with status "sent"
   const sendMessage = (chatId, message) => {
@@ -201,16 +245,46 @@ export const SocketProvider = ({ children }) => {
     socket.emit("leaveRoom", chatId);
   };
 
+  const startCall = (callType, participants) => {
+    if (!socket || !isConnected) {
+      console.error("Socket not connected");
+      return;
+    }
+
+    const caller = { name: user.name, socketId: socket.id }; // Replace with actual caller details
+    socket.emit("startCall", { callType, participants, caller });
+    console.log("📞 Emitting startCall event:", { callType, participants, caller });
+  };
+
+  const acceptCall = () => {
+    if (!socket || !incomingCall) return;
+    socket.emit("callAccepted", { callerSocketId: incomingCall.caller.socketId });
+    setCallState("accepted");
+  };
+
+  const rejectCall = () => {
+    if (!socket || !incomingCall) return;
+    socket.emit("callRejected", { callerSocketId: incomingCall.caller.socketId });
+    setCallState("rejected");
+  };
+
   return (
-    <SocketContext.Provider value={{
-      socket,
-      isConnected,
-      messages,
-      sendMessage,
-      joinChatRoom,
-      leaveChatRoom,
-      markMessagesAsRead
-    }}>
+    <SocketContext.Provider
+      value={{
+        socket,
+        isConnected,
+        messages,
+        sendMessage,
+        joinChatRoom,
+        leaveChatRoom,
+        markMessagesAsRead,
+        callState,
+        incomingCall,
+        startCall,
+        acceptCall,
+        rejectCall,
+      }}
+    >
       {children}
     </SocketContext.Provider>
   );

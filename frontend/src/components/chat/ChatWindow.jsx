@@ -2,7 +2,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { ChatContext } from "../../context/ChatContext";
 import { SocketContext } from "../../context/SocketContext";
 import { AuthContext } from "../../context/AuthContext";
-import { Box, IconButton, Tooltip, Dialog, Tabs, Tab } from "@mui/material";
+import { Box, IconButton, Tooltip, Dialog, Tabs, Tab, Typography, Button, Avatar } from "@mui/material";
 import Message from "./Message";
 import MessageInput from "./MessageInput";
 import TopNavbar from "../layout/TopNavbar";
@@ -29,7 +29,7 @@ const ChatWindow = () => {
     setMessages,
   } = useContext(ChatContext);
   const { user } = useContext(AuthContext);
-  const { socket, isConnected } = useContext(SocketContext);
+  const { socket, isConnected, incomingCall, setIncomingCall } = useContext(SocketContext);
 
   const messagesEndRef = useRef(null);
 
@@ -146,8 +146,47 @@ const ChatWindow = () => {
     }
   };
 
+  const handleAcceptCall = () => {
+    console.log("Call accepted");
+    setIncomingCall(null); // Clear incoming call state
+    // Start the call interface here
+  };
+
+  const handleRejectCall = () => {
+    console.log("Call rejected");
+    setIncomingCall(null); // Clear incoming call state
+    // Notify the caller about rejection (optional)
+  };
+
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+      {/* Incoming Call Modal */}
+      {incomingCall && (
+        <Dialog open={true} onClose={handleRejectCall}>
+          <Box sx={{ p: 2, textAlign: "center" }}>
+            <Avatar
+              src={incomingCall.caller.avatar || "/default-avatar.png"}
+              alt={incomingCall.caller.name || "Caller"}
+              sx={{ width: 80, height: 80, margin: "0 auto" }}
+            />
+            <Typography variant="h6" sx={{ mt: 2 }}>
+              {incomingCall.caller.name || "Unknown Caller"}
+            </Typography>
+            <Typography variant="subtitle1" sx={{ color: "gray", mt: 1 }}>
+              {incomingCall.callType === "video" ? "Incoming Video Call" : "Incoming Voice Call"}
+            </Typography>
+            <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 3 }}>
+              <Button variant="contained" color="primary" onClick={handleAcceptCall}>
+                Accept
+              </Button>
+              <Button variant="outlined" color="secondary" onClick={handleRejectCall}>
+                Reject
+              </Button>
+            </Box>
+          </Box>
+        </Dialog>
+      )}
+
       {/* Hide TopNavbar and render CallInterface */}
       {callActive ? (
         <CallInterface
