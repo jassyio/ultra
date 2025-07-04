@@ -209,39 +209,44 @@ const ChatWindow = () => {
             actions={
               isGroup ? (
                 <>
-                  <Tooltip title="Start Group Call">
+                  {/* Group Info Icon */}
+                  <Tooltip title="Group Info">
+                    <IconButton
+                      onClick={() => setGroupModalOpen(true)} // Open group info modal
+                    >
+                      <PeopleIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+
+                  {/* Add Member Icon */}
+                  <Tooltip title="Add Member">
+                    <IconButton
+                      onClick={() => setGroupTab(1) || setGroupModalOpen(true)} // Open add member tab in modal
+                    >
+                      <GroupAddIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+
+                  {/* Start Call Icon */}
+                  <Tooltip title="Start Call">
                     <IconButton
                       onClick={() => {
-                        if (!socket || !chat?._id) {
-                          console.error("Socket or chat ID is missing");
-                          return;
-                        }
-                        console.log("Initiating group call...");
-                        socket.emit("startGroupCall", {
-                          groupId: chat._id,
-                          participants: chat.members,
-                        });
-                        setCallActive(true); // Activate the call interface
+                        setCallActive(true);
                         setIsVideoCall(false); // Start as voice call
+                        console.log("Call started");
                       }}
                     >
                       <CallIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Start Group Video Call">
+
+                  {/* Start Video Call Icon */}
+                  <Tooltip title="Start Video Call">
                     <IconButton
                       onClick={() => {
-                        if (!socket || !chat?._id) {
-                          console.error("Socket or chat ID is missing");
-                          return;
-                        }
-                        console.log("Initiating group video call...");
-                        socket.emit("startGroupCall", {
-                          groupId: chat._id,
-                          participants: chat.members,
-                        });
-                        setCallActive(true); // Activate the call interface
+                        setCallActive(true);
                         setIsVideoCall(true); // Start as video call
+                        console.log("Video call started");
                       }}
                     >
                       <Videocam fontSize="small" />
@@ -250,6 +255,7 @@ const ChatWindow = () => {
                 </>
               ) : (
                 <>
+                  {/* Direct Chat Call Icons */}
                   <Tooltip title="Start Call">
                     <IconButton
                       onClick={() => {

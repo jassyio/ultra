@@ -96,7 +96,7 @@ const GroupChat = () => {
   };
 
   // After fetching group, check if user is admin
-  const isAdmin = group?.admins?.some(a => a._id === user._id);
+  const isAdmin = group?.admins?.some((admin) => admin._id === user._id);
 
   // Handler for adding member
   const handleMemberAdded = async () => {
