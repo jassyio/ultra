@@ -126,32 +126,30 @@ const MessageInput = ({ chatId, disabled }) => {
 
   // Send message
   const handleSend = async () => {
-    if ((!message.trim() && !mediaBlob && !mediaPreview) || !isConnected || isSending) return;
+    console.log("Send button clicked");
+    if ((!message.trim() && !mediaBlob && !mediaPreview) || !isConnected || isSending) {
+      console.log("Message not sent: Invalid conditions", { message, mediaBlob, mediaPreview, isConnected, isSending });
+      return;
+    }
+    console.log("Sending message:", { message, mediaBlob, mediaPreview });
+
     setIsSending(true);
     try {
       if (mediaBlob) {
+        console.log("Sending media message");
         const file = new File([mediaBlob], `media.${mediaType === "audio" ? "webm" : mediaType}`, { type: mediaBlob.type });
         const fakeUrl = URL.createObjectURL(file);
         sendMessage(chatId, {
           content: message.trim(),
-          attachments: [{ url: fakeUrl, type: mediaType }]
+          attachments: [{ url: fakeUrl, type: mediaType }],
         });
-        setMediaBlob(null);
-        setMediaType(null);
-        setMediaPreview(null);
-      } else if (mediaType === "gif" || mediaType === "sticker") {
-        sendMessage(chatId, {
-          content: message.trim(),
-          attachments: [{ url: mediaPreview, type: mediaType }]
-        });
-        setMediaType(null);
-        setMediaPreview(null);
       } else {
+        console.log("Sending text message");
         sendMessage(chatId, { content: message.trim() });
       }
       setMessage("");
     } catch (error) {
-      setMessage(message);
+      console.error("Error sending message:", error);
     } finally {
       setIsSending(false);
     }
