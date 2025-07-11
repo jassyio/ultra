@@ -24,9 +24,10 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3001;
 
 const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:3001",
-  "https://ultra-frontend-zeta.vercel.app",
+  "http://localhost:5173", // Local frontend
+  "http://localhost:3001", // Local backend
+  "https://ultra-frontend-zeta.vercel.app", // Hosted frontend
+  "https://ultra-frontend-git-main-jassyios-projects.vercel.app", // Another hosted frontend
 ];
 
 app.use(
@@ -38,7 +39,9 @@ app.use(
         callback(new Error("Not allowed by CORS"));
       }
     },
-    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allow necessary HTTP methods
+    allowedHeaders: ["Content-Type", "Authorization"], // Allow necessary headers
+    credentials: true, // Allow cookies and authentication headers
   })
 );
 
@@ -57,19 +60,9 @@ app.get("/", (req, res) => {
 
 const io = socketIO(server, {
   cors: {
-    origin: (origin, callback) => {
-      const allowedOrigins = [
-        "http://localhost:5173",
-        "https://ultra-frontend-zeta.vercel.app",
-      ];
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: allowedOrigins, // Use the same allowedOrigins array
     methods: ["GET", "POST"],
-    credentials: true,
+    credentials: true, // Allow cookies and authentication headers
   },
 });
 

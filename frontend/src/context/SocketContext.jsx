@@ -2,10 +2,25 @@ import { createContext, useState, useEffect, useContext, useRef } from "react";
 import { AuthContext } from "./AuthContext";
 import { ChatContext } from "./ChatContext";
 import io from "socket.io-client";
+import axios from "axios";
 
 export const SocketContext = createContext();
 
-const SOCKET_SERVER_URL = "http://localhost:3001";
+const BACKEND_URL =
+  import.meta.env.MODE === "production"
+    ? import.meta.env.VITE_BACKEND_URL_HOSTED
+    : import.meta.env.VITE_BACKEND_URL_LOCAL;
+
+const handleLogin = async (credentials) => {
+  try {
+    const response = await axios.post(`${BACKEND_URL}/api/auth/login`, credentials, {
+      withCredentials: true, // Include cookies and authentication headers
+    });
+    console.log("Login successful:", response.data);
+  } catch (error) {
+    console.error("Login error:", error);
+  }
+};
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
@@ -25,12 +40,11 @@ export const SocketProvider = ({ children }) => {
     const connectSocket = () => {
       const token = localStorage.getItem('token');
       if (!user?.id || !token) return null;
-      if (reconnectAttempts.current >= maxReconnectAttempts) return null;
-      return io(SOCKET_SERVER_URL, {
+      return io(BACKEND_URL, {
         transports: ["websocket"],
         withCredentials: true,
         auth: { userId: user.id, token },
-        reconnection: false
+        reconnection: false,
       });
     };
 

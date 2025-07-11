@@ -15,10 +15,16 @@ const Login = () => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
   };
 
+  const backendUrl =
+    import.meta.env.MODE === "development"
+      ? "http://localhost:3001" // Local backend for development
+      : "https://ultra-backend.vercel.app"; // Hosted backend for production
+
+  console.log("Using backend URL:", backendUrl);
+
   const handleLogin = async (e) => {
-    e.preventDefault(); // Prevent form submission
-    
-    // Validate inputs
+    e.preventDefault();
+
     if (!credentials.phone || !credentials.password) {
       setError("Please fill in all fields");
       return;
@@ -27,20 +33,15 @@ const Login = () => {
     try {
       setLoading(true);
       setError("");
-      console.log("Attempting login with email:", credentials.phone);
-      
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://ultra-backend.vercel.app/';
-      console.log("Using backend URL:", backendUrl);
-      
-      const response = await axios.post(`${backendUrl}/api/auth/login`, {
+
+      const loginUrl = `${backendUrl.replace(/\/+$/, "")}/api/auth/login`;
+
+      const response = await axios.post(loginUrl, {
         email: credentials.phone,
         password: credentials.password,
       });
 
-      console.log("Login response:", response.data);
-
       if (response.data.token) {
-        console.log("Login successful, setting token and user data");
         await login(response.data.token, response.data.user || { email: credentials.phone });
         navigate("/chat");
       } else {
