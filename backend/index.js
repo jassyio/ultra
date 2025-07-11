@@ -35,16 +35,17 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      console.log(`CORS request from origin: ${origin}`);
-      if (!origin || allowedOrigins.includes(origin)) {
-        console.log("CORS allowed for origin:", origin);
-        callback(null, true);
-      } else {
-        console.error("CORS blocked for origin:", origin);
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    // origin: function (origin, callback) {
+    //   console.log(`CORS request from origin: ${origin}`);
+    //   if (!origin || allowedOrigins.includes(origin)) {
+    //     console.log("CORS allowed for origin:", origin);
+    //     callback(null, true);
+    //   } else {
+    //     console.error("CORS blocked for origin:", origin);
+    //     callback(new Error("Not allowed by CORS"));
+    //   }
+    // },
+    origin: true, // Use the allowedOrigins array
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
