@@ -28,22 +28,28 @@ const allowedOrigins = [
   "http://localhost:3001", // Local backend
   "https://ultra-frontend-zeta.vercel.app", // Hosted frontend
   "https://ultra-frontend-git-main-jassyios-projects.vercel.app", // Another hosted frontend
+  
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
+      console.log(`CORS request from origin: ${origin}`);
       if (!origin || allowedOrigins.includes(origin)) {
+        console.log("CORS allowed for origin:", origin);
         callback(null, true);
       } else {
+        console.error("CORS blocked for origin:", origin);
         callback(new Error("Not allowed by CORS"));
       }
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allow necessary HTTP methods
-    allowedHeaders: ["Content-Type", "Authorization"], // Allow necessary headers
-    credentials: true, // Allow cookies and authentication headers
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
+
+app.options("*", cors());
 
 app.use(express.json());
 

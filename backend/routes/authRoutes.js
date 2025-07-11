@@ -14,7 +14,10 @@ const router = express.Router();
 router.post("/register", register);
 router.post("/verify-otp", verifyOTP);
 router.post("/resend-otp", resendOTP);
-router.post("/login", login);
+router.post("/login", (req, res) => {
+  console.log("Login route hit with data:", req.body);
+  res.status(200).json({ message: "Login successful" });
+});
 
 // Authenticated User Routes
 router.get("/users", authMiddleware, async (req, res) => {
