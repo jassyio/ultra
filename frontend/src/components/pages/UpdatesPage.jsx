@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import StatusList from '../updates/StatusList';
 import StatusView from '../updates/StatusView';
-import { Avatar, Button, Box, Typography, Modal } from '@mui/material';
-import AddStatusModal from '../updates/AddStatusModal'; // Added import for AddStatusModal
+import { Avatar, Button, Box, Typography, Modal, useTheme } from '@mui/material';
 
 // Mock data for demonstration
 const mockInitialStatuses = [
@@ -57,8 +56,8 @@ const UpdatesPage = () => {
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [statusViewOpen, setStatusViewOpen] = useState(false);
   const [currentStatusUserIndex, setCurrentStatusUserIndex] = useState(0);
-  const [addStatusModalOpen, setAddStatusModalOpen] = useState(false);
   const [statuses, setStatuses] = useState(mockInitialStatuses); // Use useState for mockStatuses
+  const theme = useTheme();
 
   const handleStatusClick = (status) => {
     setSelectedStatus(status);
@@ -132,7 +131,6 @@ const UpdatesPage = () => {
       }
       return updatedStatuses;
     });
-    setAddStatusModalOpen(false);
   };
 
   // Separate own status and others
@@ -148,7 +146,7 @@ const UpdatesPage = () => {
           <Typography variant="subtitle1" fontWeight="bold">My Status</Typography>
           <Typography variant="body2" color="text.secondary">{ownStatus.message}</Typography>
         </Box>
-        <Button variant="contained" size="small" sx={{ ml: 2 }} onClick={() => setAddStatusModalOpen(true)}>
+        <Button variant="contained" size="small" sx={{ ml: 2 }}>
           + Add
         </Button>
       </Box>
@@ -164,7 +162,7 @@ const UpdatesPage = () => {
             sx={{ display: 'flex', alignItems: 'center', mb: 2, cursor: 'pointer', opacity: status.seen ? 0.6 : 1 }}
             onClick={() => handleStatusClick(status)}
           >
-            <Avatar src={status.avatar} alt={status.name} sx={{ width: 48, height: 48, mr: 2, border: status.seen ? '2px solid #bbb' : '2px solid #25D366' }} />
+            <Avatar src={status.avatar} alt={status.name} sx={{ width: 48, height: 48, mr: 2, border: status.seen ? '2px solid #bbb' : `2px solid ${theme.palette.primary.main}` }} />
             <Box sx={{ flex: 1 }}>
               <Typography variant="subtitle1" fontWeight={status.seen ? 'normal' : 'bold'}>{status.name}</Typography>
               <Typography variant="body2" color="text.secondary">{status.message}</Typography>
@@ -187,13 +185,6 @@ const UpdatesPage = () => {
           )}
         </Box>
       </Modal>
-
-      {/* Add Status Modal */}
-      <AddStatusModal 
-        open={addStatusModalOpen} 
-        onClose={() => setAddStatusModalOpen(false)} 
-        onAddStatus={handleAddStatus}
-      />
     </Box>
   );
 };

@@ -4,6 +4,7 @@ import {
   Navigate,
   useLocation,
 } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 
 import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
@@ -30,29 +31,102 @@ import { SocketProvider } from "./context/SocketContext";
 
 const App = () => {
   const { user } = useContext(AuthContext);
+  const location = useLocation();
 
   return (
     // Wrap the app with the SocketProvider to provide socket connection to all components
     <SocketProvider>
       <MainLayout>
-        <Routes>
-          <Route path="/" element={user ? <Navigate to="/chat" /> : <StartPage />} />
-          <Route path="/login" element={user ? <Navigate to="/chat" /> : <Login />} />
-          <Route path="/register" element={user ? <Navigate to="/chat" /> : <Register />} />
-          <Route path="/verification" element={<VerificationPage />} />
-          <Route path="/setup" element={<SetupPage />} />
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            <Route path="/" element={<motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >{user ? <Navigate to="/chat" /> : <StartPage />}</motion.div>} />
+            <Route path="/login" element={<motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >{user ? <Navigate to="/chat" /> : <Login />}</motion.div>} />
+            <Route path="/register" element={<motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >{user ? <Navigate to="/chat" /> : <Register />}</motion.div>} />
+            <Route path="/verification" element={<motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            ><VerificationPage /></motion.div>} />
+            <Route path="/setup" element={<motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            ><SetupPage /></motion.div>} />
 
-          <Route path="/chat" element={<PrivateRoute><ChatPage /></PrivateRoute>} />
-          <Route path="/communities" element={<PrivateRoute><CommunitiesPage /></PrivateRoute>} />
-          <Route path="/calls" element={<PrivateRoute><CallsPage /></PrivateRoute>} />
-          <Route path="/updates" element={<PrivateRoute><UpdatesPage /></PrivateRoute>} />
-          <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} /> {/* <-- Add this route */}
-          <Route path="/groups/new" element={<CreateGroupPage />} />
-          <Route path="/groups/:groupId" element={<GroupChat />} />
-          <Route path="/groups/:groupId/info" element={<GroupInfo />} />
+            <Route path="/chat" element={<motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            ><PrivateRoute><ChatPage /></PrivateRoute></motion.div>} />
+            <Route path="/communities" element={<motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            ><PrivateRoute><CommunitiesPage /></PrivateRoute></motion.div>} />
+            <Route path="/calls" element={<motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            ><PrivateRoute><CallsPage /></PrivateRoute></motion.div>} />
+            <Route path="/updates" element={<motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            ><PrivateRoute><UpdatesPage /></PrivateRoute></motion.div>} />
+            <Route path="/settings" element={<motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            ><PrivateRoute><SettingsPage /></PrivateRoute></motion.div>} />
+            <Route path="/groups/new" element={<motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            ><CreateGroupPage /></motion.div>} />
+            <Route path="/groups/:groupId" element={<motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            ><GroupChat /></motion.div>} />
+            <Route path="/groups/:groupId/info" element={<motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            ><GroupInfo /></motion.div>} />
 
-          <Route path="*" element={user ? <Navigate to="/chat" /> : <Navigate to="/" />} />
-        </Routes>
+            <Route path="*" element={<motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >{user ? <Navigate to="/chat" /> : <Navigate to="/" />}</motion.div>} />
+          </Routes>
+        </AnimatePresence>
       </MainLayout>
     </SocketProvider>
   );

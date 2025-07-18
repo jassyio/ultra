@@ -1,0 +1,17 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ultraGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8360c3" />
+      <stop offset="100%" stop-color="#2ebf91" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background with gradient -->
+  <rect width="256" height="256" fill="url(#ultraGradient)"/>
+
+  <!-- Stylized 'U' -->
+  <path d="M70 180 V90 H100 V180 C100 190 90 200 80 200 H70 Z M150 180 V90 H180 V180 C180 190 170 200 160 200 H150 Z M100 90 H150 V120 H100 Z" fill="white"/>
+
+  <!-- Message Icon -->
+  <path d="M128 60 C98.667 60 74 80.667 74 100 C74 119.333 92 130 110 130 C118 130 126 128 132 124 L146 138 L140 128 C158 120 174 108 174 100 C174 80.667 153.333 60 128 60 Z" fill="white"/>
+</svg> 

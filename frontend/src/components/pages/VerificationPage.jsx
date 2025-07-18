@@ -112,15 +112,18 @@ const VerificationPage = () => {
         )}
         <Button
           variant="contained"
-          type="submit"
+          fullWidth
           sx={{
-            backgroundColor: "#25D366",
-            width: "300px",
-            marginBottom: 2,
+            padding: "12px 0",
+            fontWeight: "bold",
+            fontSize: "1rem",
+            marginTop: 3,
+            mb: 2, // Margin bottom for spacing
           }}
+          onClick={handleVerify}
           disabled={loading}
         >
-          {loading ? <CircularProgress size={24} /> : "Verify"}
+          {loading ? <CircularProgress size={24} color="inherit" /> : "Verify OTP"}
         </Button>
       </form>
       <Button

@@ -11,11 +11,13 @@ import PeopleIcon from "@mui/icons-material/People";
 import CallIcon from "@mui/icons-material/Call";
 import AddGroupMemberModal from "../groups/AddGroupMemberModal";
 import GroupInfo from "../groups/GroupInfo";
+import GroupManagementModal from "../groups/GroupManagementModal"; // Added import for GroupManagementModal
 import { useTheme } from "@mui/material/styles";
 import { Search, MoreVert } from "@mui/icons-material";
 import CallInterface from "../calls/CallInterface";
 import Videocam from "@mui/icons-material/Videocam";
 import axios from "axios";
+import MessageSkeleton from "./MessageSkeleton"; // Import MessageSkeleton
 
 const ChatWindow = () => {
   const {
@@ -27,6 +29,7 @@ const ChatWindow = () => {
     addMessageToChat,
     updateChatWithNewMessage,
     setMessages,
+    loadingMessages, // Get loadingMessages state
   } = useContext(ChatContext);
   const { user } = useContext(AuthContext);
   const { socket, isConnected, incomingCall, setIncomingCall } = useContext(SocketContext);
@@ -43,7 +46,7 @@ const ChatWindow = () => {
     if (selectedChat?._id) {
       fetchMessagesForChat(selectedChat._id);
     }
-  }, [selectedChat?._id]);
+  }, [selectedChat?._id, fetchMessagesForChat]); // Add fetchMessagesForChat to dependencies
 
   // Update socket handler to be more robust
   useEffect(() => {
@@ -255,13 +258,16 @@ const ChatWindow = () => {
                 </>
               ) : (
                 <>
-                  {/* Direct Chat Call Icons */}
+                  <Tooltip title="Search Chat">
+                    <IconButton>
+                      <Search fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                   <Tooltip title="Start Call">
                     <IconButton
                       onClick={() => {
                         setCallActive(true);
-                        setIsVideoCall(false); // Start as voice call
-                        console.log("Call started");
+                        setIsVideoCall(false);
                       }}
                     >
                       <CallIcon fontSize="small" />
@@ -271,11 +277,15 @@ const ChatWindow = () => {
                     <IconButton
                       onClick={() => {
                         setCallActive(true);
-                        setIsVideoCall(true); // Start as video call
-                        console.log("Video call started");
+                        setIsVideoCall(true);
                       }}
                     >
                       <Videocam fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="More Options">
+                    <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
+                      <MoreVert fontSize="small" />
                     </IconButton>
                   </Tooltip>
                 </>
@@ -283,109 +293,34 @@ const ChatWindow = () => {
             }
           />
 
-          <Box
-            sx={{
-              flex: 1,
-              overflowY: "auto",
-              bgcolor: "#f0f2f5",
-              pb: 2,
-              display: "flex",
-              flexDirection: "column",
-            }}
-            className="dark:bg-gray-900"
-          >
-            <Box sx={{ py: 3, px: "5%" }}>
-              {chatMessages.length > 0 ? (
-                chatMessages.map((msg, index) => (
-                  <Message
-                    key={msg._id || msg.tempId || index}
-                    message={msg}
-                    isOwnMessage={
-                      (typeof msg.sender === "object"
-                        ? msg.sender._id
-                        : msg.sender) === user.id
-                    }
-                    isPending={msg.isPending}
-                  />
-                ))
-              ) : (
-                <Box
-                  sx={{
-                    textAlign: "center",
-                    color: "#8696a0",
-                    mt: 10,
-                    fontSize: "0.875rem",
-                  }}
-                >
-                  No messages yet
-                </Box>
-              )}
-              <div ref={messagesEndRef} />
-            </Box>
+          <Box sx={{ flex: 1, overflowY: "auto", p: 1, position: 'relative' }}>
+            {loadingMessages ? (
+              // Display message skeletons when loadingMessages is true
+              Array.from(new Array(10)).map((_, index) => (
+                <MessageSkeleton key={index} isOwn={index % 2 === 0} /> // Vary isOwn for different alignments
+              ))
+            ) : (
+              chatMessages.map((message, index) => (
+                <Message
+                  key={message._id || index} // Use index as fallback for pending messages
+                  message={message}
+                  isOwnMessage={message.sender === user?.id}
+                />
+              ))
+            )}
+            <div ref={messagesEndRef} />
           </Box>
 
-          <Box
-            sx={{
-              position: "sticky",
-              bottom: 0,
-              width: "100%",
-              bgcolor: "background.paper",
-              borderTop: "1px solid",
-              borderColor: "divider",
-            }}
-            className="dark:bg-gray-800 dark:border-gray-700"
-          >
-            <MessageInput
-              chatId={selectedChat._id}
-              onMessageSent={handleSendMessage}
-              disabled={!isConnected}
-            />
-          </Box>
+          <MessageInput onSendMessage={handleSendMessage} />
 
-          {/* Group Management Modal with Tabs */}
-          {isGroup && (
-            <Dialog
-              open={groupModalOpen}
+          {/* Group Management Modal */}
+          <Dialog open={groupModalOpen} onClose={() => setGroupModalOpen(false)} maxWidth="sm" fullWidth>
+            <GroupManagementModal
+              groupId={selectedChat?._id}
+              initialTab={groupTab}
               onClose={() => setGroupModalOpen(false)}
-              maxWidth="xs"
-              fullWidth
-            >
-              <Box sx={{ p: 2, minWidth: 320 }}>
-                <Tabs
-                  value={groupTab}
-                  onChange={(_, v) => setGroupTab(v)}
-                  centered
-                >
-                  <Tab label="Members" />
-                  <Tab label="Add Member" />
-                  <Tab label="Info" />
-                </Tabs>
-                <Box sx={{ mt: 2 }}>
-                  {groupTab === 0 && (
-                    <GroupInfo
-                      group={chat}
-                      onClose={() => setGroupModalOpen(false)}
-                    />
-                  )}
-                  {groupTab === 1 && (
-                    <AddGroupMemberModal
-                      groupId={chat._id}
-                      onClose={() => setGroupModalOpen(false)}
-                      onMemberAdded={() => setGroupModalOpen(false)}
-                    />
-                  )}
-                  {groupTab === 2 && (
-                    <Box sx={{ p: 2 }}>
-                      <strong>Group Name:</strong> {chat.name}
-                      <br />
-                      <strong>Created:</strong> {chat.createdAt}
-                      {/* Add more info as needed */}
-                    </Box>
-                  )}
-                </Box>
-              </Box>
-            </Dialog>
-          )}
+            />
+          </Dialog>
         </>
       )}
     </Box>

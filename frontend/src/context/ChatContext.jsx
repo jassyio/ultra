@@ -17,7 +17,8 @@ export const ChatProvider = ({ children }) => {
   const [chats, setChats] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [messages, setMessages] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // For chat list loading
+  const [loadingMessages, setLoadingMessages] = useState(false); // For messages within a chat
   const [error, setError] = useState(null);
 
   const fetchChats = useCallback(async () => {
@@ -58,7 +59,7 @@ export const ChatProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]); // Only depend on user.id, not the entire selectedChat object
+  }, [user?.id]); 
 
   useEffect(() => {
     fetchChats();
@@ -119,7 +120,7 @@ export const ChatProvider = ({ children }) => {
   const fetchMessagesForChat = useCallback(async (chatId) => {
     if (!user || !chatId) return;
 
-    setLoading(true);
+    setLoadingMessages(true); // Set loading for messages
     try {
       const token = localStorage.getItem("token");
       const { data } = await axios.get(`${BACKEND_URL}/api/messages/${chatId}`, {
@@ -154,7 +155,7 @@ export const ChatProvider = ({ children }) => {
       setError(err.response?.data?.message || "Failed to load messages");
       setMessages((prev) => ({ ...prev, [chatId]: [] }));
     } finally {
-      setLoading(false);
+      setLoadingMessages(false); // Unset loading for messages
     }
   }, [user]);
 
@@ -250,24 +251,24 @@ export const ChatProvider = ({ children }) => {
     if (chat && chat._id && !messages[chat._id]?.length) {
       await fetchMessagesForChat(chat._id);
     }
-  }, [fetchMessagesForChat, messages]);
+  }, [fetchMessagesForChat, messages]); // Added messages as a dependency because it's used in the logic
 
   return (
     <ChatContext.Provider
       value={{
         chats,
-        setChats,
         selectedChat,
-        setSelectedChat: selectChat,
+        setSelectedChat,
         messages,
-        setMessages,
+        fetchChats,
         fetchMessagesForChat,
         addMessageToChat,
         updateChatWithNewMessage,
-         fetchChats,
-        loading,
+        setMessages,
+        loading, // Still expose chat list loading
+        loadingMessages, // Expose message loading
         error,
-        setError,
+        clearError: () => setError(null),
       }}
     >
       {children}

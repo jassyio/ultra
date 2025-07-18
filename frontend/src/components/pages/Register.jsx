@@ -110,7 +110,6 @@ const Register = () => {
           variant="contained"
           type="submit"
           sx={{
-            backgroundColor: "#25D366",
             width: "300px",
             marginTop: 2,
           }}

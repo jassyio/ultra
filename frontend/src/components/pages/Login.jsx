@@ -105,14 +105,16 @@ const Login = () => {
         <Button
           variant="contained"
           type="submit"
+          fullWidth
           sx={{
-            backgroundColor: "#25D366",
-            width: "300px",
-            marginTop: 2,
+            padding: "12px 0",
+            fontWeight: "bold",
+            fontSize: "1rem",
+            marginTop: 3,
           }}
           disabled={loading}
         >
-          {loading ? "Logging in..." : "Login"}
+          {loading ? "Logging In..." : "Login"}
         </Button>
       </form>
       <Typography sx={{ marginTop: 2 }}>
