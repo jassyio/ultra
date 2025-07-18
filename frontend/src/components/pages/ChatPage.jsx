@@ -109,7 +109,13 @@ const ChatPage = () => {
   })();
 
   return (
-    <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+    <Box
+      sx={{
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       {/* Top bar with title and menu */}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, pt: 1 }}>
         <TopNavbar
@@ -249,29 +255,26 @@ const ChatPage = () => {
                       alt={displayName}
                       sx={{ width: 48, height: 48, mr: 2 }}
                     />
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                        {displayName}
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="subtitle1" fontWeight="medium">{displayName}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {chat.lastMessage?.content || "No messages yet"}
                       </Typography>
-                      {chat.lastMessage && (
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          noWrap
-                        >
-                          {chat.lastMessage.sender === user?.id ? "You: " : ""}
-                          {chat.lastMessage.content}
-                        </Typography>
-                      )}
                     </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      {chat.lastMessage?.createdAt
+                        ? new Date(chat.lastMessage.createdAt).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : ""}
+                    </Typography>
                   </Box>
                 );
               })
             ) : (
-              <Typography sx={{ textAlign: "center", mt: 2, color: "gray" }}>
-                {loading
-                  ? "Loading chats..."
-                  : "No chats available. Start a new conversation!"}
+              <Typography variant="body1" color="text.secondary" sx={{ textAlign: "center", mt: 4 }}>
+                No chats yet. Start a new conversation!
               </Typography>
             )}
           </Box>
@@ -291,7 +294,6 @@ const ChatPage = () => {
       )}
 
       <AddChatModal open={modalOpen} onClose={() => setModalOpen(false)} />
-
     </Box>
   );
 };
