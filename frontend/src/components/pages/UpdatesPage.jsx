@@ -138,13 +138,13 @@ const UpdatesPage = () => {
   const otherStatuses = statuses.filter(s => !s.isOwn); // Use statuses state
 
   return (
-    <Box sx={{ maxWidth: 480, margin: '0 auto', px: 2, pt: { xs: '56px', sm: '64px' }, pb: '64px' }}>
+    <Box sx={{ maxWidth: 480, margin: '0 auto', px: 2, pt: { xs: '56px', sm: '64px' }, pb: '64px', bgcolor: theme.palette.background.default, minHeight: '100vh' }}>
       {/* Your own status */}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, mt: 2 }}>
         <Avatar src={ownStatus.avatar} alt="Your avatar" sx={{ width: 56, height: 56, mr: 2 }} />
         <Box sx={{ flex: 1 }}>
-          <Typography variant="subtitle1" fontWeight="bold">My Status</Typography>
-          <Typography variant="body2" color="text.secondary">{ownStatus.message}</Typography>
+          <Typography variant="subtitle1" fontWeight="bold" sx={{ color: theme.palette.text.primary }}>My Status</Typography>
+          <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>{ownStatus.message}</Typography>
         </Box>
         <Button variant="contained" size="small" sx={{ ml: 2 }}>
           + Add
@@ -152,7 +152,7 @@ const UpdatesPage = () => {
       </Box>
 
       {/* Recent updates */}
-      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, mt: 2 }}>
+      <Typography variant="subtitle2" sx={{ color: theme.palette.text.secondary, mb: 1, mt: 2 }}>
         Recent updates
       </Typography>
       <Box>
@@ -164,10 +164,10 @@ const UpdatesPage = () => {
           >
             <Avatar src={status.avatar} alt={status.name} sx={{ width: 48, height: 48, mr: 2, border: status.seen ? '2px solid #bbb' : `2px solid ${theme.palette.primary.main}` }} />
             <Box sx={{ flex: 1 }}>
-              <Typography variant="subtitle1" fontWeight={status.seen ? 'normal' : 'bold'}>{status.name}</Typography>
-              <Typography variant="body2" color="text.secondary">{status.message}</Typography>
+              <Typography variant="subtitle1" fontWeight={status.seen ? 'normal' : 'bold'} sx={{ color: theme.palette.text.primary }}>{status.name}</Typography>
+              <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>{status.message}</Typography>
             </Box>
-            <Typography variant="caption" color="text.secondary">{status.time}</Typography>
+            <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>{status.time}</Typography>
           </Box>
         ))}
       </Box>

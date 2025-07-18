@@ -9,6 +9,7 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
+  useTheme,
 } from "@mui/material";
 import TopNavbar from "../layout/TopNavbar";
 import FloatingButton from "../common/FloatingButton";
@@ -108,12 +109,15 @@ const ChatPage = () => {
     return null;
   })();
 
+  const theme = useTheme();
+
   return (
     <Box
       sx={{
         height: "100vh",
         display: "flex",
         flexDirection: "column",
+        bgcolor: theme.palette.background.default,
       }}
     >
       {/* Top bar with title and menu */}
@@ -180,7 +184,8 @@ const ChatPage = () => {
           mt: "48px",
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          bgcolor: theme.palette.background.default,
         }}
       >
         {loading && (
@@ -194,7 +199,7 @@ const ChatPage = () => {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: "rgba(255, 255, 255, 0.8)",
+              backgroundColor: theme.palette.background.default,
               zIndex: 1000,
             }}
           >
@@ -214,7 +219,7 @@ const ChatPage = () => {
         </Snackbar>
 
         {!selectedChat ? (
-          <Box sx={{ flex: 1, overflowY: "auto", p: 1 }}>
+          <Box sx={{ flex: 1, overflowY: "auto", p: 1, bgcolor: theme.palette.background.paper }}>
             {chats.length > 0 ? (
               chats.map((chat) => {
                 // Detect if this is a group (has members) or a direct chat (has participants)
@@ -256,12 +261,14 @@ const ChatPage = () => {
                       sx={{ width: 48, height: 48, mr: 2 }}
                     />
                     <Box sx={{ flex: 1 }}>
-                      <Typography variant="subtitle1" fontWeight="medium">{displayName}</Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="subtitle1" fontWeight="medium" sx={{ color: theme.palette.text.primary }}>
+                        {displayName}
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
                         {chat.lastMessage?.content || "No messages yet"}
                       </Typography>
                     </Box>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
                       {chat.lastMessage?.createdAt
                         ? new Date(chat.lastMessage.createdAt).toLocaleTimeString([], {
                             hour: '2-digit',
@@ -273,8 +280,8 @@ const ChatPage = () => {
                 );
               })
             ) : (
-              <Typography variant="body1" color="text.secondary" sx={{ textAlign: "center", mt: 4 }}>
-                No chats yet. Start a new conversation!
+              <Typography sx={{ color: theme.palette.text.secondary, textAlign: 'center', mt: 8 }}>
+                No chats yet
               </Typography>
             )}
           </Box>

@@ -14,6 +14,9 @@ import {
   TextField,
   Button,
   IconButton,
+  Switch,
+  FormControlLabel,
+  useTheme,
 } from "@mui/material";
 import TopNavbar from "../layout/TopNavbar";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
@@ -25,10 +28,13 @@ import EditIcon from "@mui/icons-material/Edit";
 import PhotoCamera from "@mui/icons-material/PhotoCamera";
 import { AuthContext } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { ThemeContext } from '../../context/ThemeContext';
 
 const SettingsPage = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { themeMode, setThemeMode } = useContext(ThemeContext);
+  const theme = useTheme();
 
   // Profile edit dialog state
   const [editOpen, setEditOpen] = useState(false);
@@ -58,7 +64,7 @@ const SettingsPage = () => {
   };
 
   return (
-    <Box sx={{ height: "100vh", bgcolor: "background.default" }}>
+    <Box sx={{ height: "100vh", bgcolor: theme.palette.background.default }}>
       <TopNavbar
         title="Settings"
         showBackButton
@@ -76,12 +82,12 @@ const SettingsPage = () => {
             sx={{ width: 64, height: 64, mr: 2 }}
           />
           <Box>
-            <Typography variant="h6">{user?.name || "Your Name"}</Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="h6" sx={{ color: theme.palette.text.primary }}>{user?.name || "Your Name"}</Typography>
+            <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
               {user?.bio || "Hey there! I am using Ultra."}
             </Typography>
           </Box>
-          <IconButton sx={{ ml: 1 }} size="small">
+          <IconButton sx={{ ml: 1, color: theme.palette.text.primary }} size="small">
             <EditIcon fontSize="small" />
           </IconButton>
         </Box>
@@ -94,29 +100,47 @@ const SettingsPage = () => {
             <ListItemIcon>
               <AccountCircleIcon />
             </ListItemIcon>
-            <ListItemText primary="Account" secondary="Privacy, security, change number" />
+            <ListItemText primary={<span style={{color: theme.palette.text.primary}}>Account</span>} secondary={<span style={{color: theme.palette.text.secondary}}>Privacy, security, change number</span>} />
             <ArrowForwardIosIcon fontSize="small" />
           </ListItem>
           <ListItem button>
             <ListItemIcon>
               <ChatIcon />
             </ListItemIcon>
-            <ListItemText primary="Chats" secondary="Theme, wallpapers, chat history" />
+            <ListItemText primary={<span style={{color: theme.palette.text.primary}}>Chats</span>} secondary={<span style={{color: theme.palette.text.secondary}}>Theme, wallpapers, chat history</span>} />
             <ArrowForwardIosIcon fontSize="small" />
           </ListItem>
           <ListItem button>
             <ListItemIcon>
               <NotificationsIcon />
             </ListItemIcon>
-            <ListItemText primary="Notifications" secondary="Message, group & call tones" />
+            <ListItemText primary={<span style={{color: theme.palette.text.primary}}>Notifications</span>} secondary={<span style={{color: theme.palette.text.secondary}}>Message, group & call tones</span>} />
             <ArrowForwardIosIcon fontSize="small" />
           </ListItem>
           <ListItem button>
             <ListItemIcon>
               <LockIcon />
             </ListItemIcon>
-            <ListItemText primary="Privacy" secondary="Block contacts, disappearing messages" />
+            <ListItemText primary={<span style={{color: theme.palette.text.primary}}>Privacy</span>} secondary={<span style={{color: theme.palette.text.secondary}}>Block contacts, disappearing messages</span>} />
             <ArrowForwardIosIcon fontSize="small" />
+          </ListItem>
+          {/* Theme Switcher */}
+          <ListItem>
+            <ListItemIcon>
+              <ChatIcon />
+            </ListItemIcon>
+            <ListItemText primary={<span style={{color: theme.palette.text.primary}}>Theme</span>} secondary={<span style={{color: theme.palette.text.secondary}}>Switch between Light and Dark mode</span>} />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={themeMode === 'dark'}
+                  onChange={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
+                  color="primary"
+                  size="small"
+                />
+              }
+              label={themeMode === 'dark' ? "Dark" : "Light"}
+            />
           </ListItem>
         </List>
       </Box>
@@ -146,6 +170,16 @@ const SettingsPage = () => {
             value={editName}
             onChange={e => setEditName(e.target.value)}
             margin="normal"
+            InputProps={{
+              style: {
+                color: theme.palette.text.primary,
+                background: theme.palette.background.paper,
+              },
+            }}
+            sx={{
+              color: theme.palette.text.primary,
+              bgcolor: theme.palette.background.paper,
+            }}
           />
           <TextField
             label="Bio"
@@ -155,6 +189,16 @@ const SettingsPage = () => {
             margin="normal"
             multiline
             rows={2}
+            InputProps={{
+              style: {
+                color: theme.palette.text.primary,
+                background: theme.palette.background.paper,
+              },
+            }}
+            sx={{
+              color: theme.palette.text.primary,
+              bgcolor: theme.palette.background.paper,
+            }}
           />
           <Button
             variant="contained"

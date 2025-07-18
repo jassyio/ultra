@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { Person, CameraAlt } from "@mui/icons-material";
 import Cropper from "react-easy-crop";
+import { ThemeContext } from '../../context/ThemeContext';
 
 function getCroppedImg(imageSrc, crop, zoom) {
   // Utility to crop image, see react-easy-crop docs for full implementation
@@ -26,9 +27,9 @@ function getCroppedImg(imageSrc, crop, zoom) {
 const SetupPage = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { themeMode, setThemeMode } = useContext(ThemeContext);
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
-  const [darkMode, setDarkMode] = useState(false);
   const [profilePic, setProfilePic] = useState(null);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [cropImage, setCropImage] = useState(null);
@@ -72,7 +73,7 @@ const SetupPage = () => {
     <Box
       sx={{
         minHeight: "100vh",
-        bgcolor: darkMode ? "#181c24" : "linear-gradient(135deg, #e7ffdb 0%, #b2f0e6 100%)",
+        bgcolor: themeMode === 'dark' ? "#181c24" : "linear-gradient(135deg, #e7ffdb 0%, #b2f0e6 100%)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -86,7 +87,7 @@ const SetupPage = () => {
           borderRadius: 4,
           maxWidth: 400,
           width: "100%",
-          bgcolor: darkMode ? "#23272f" : "#fff",
+          bgcolor: themeMode === 'dark' ? "#23272f" : "#fff",
           boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.15)",
         }}
       >
@@ -105,7 +106,7 @@ const SetupPage = () => {
           <Typography
             variant="subtitle1"
             sx={{
-              color: darkMode ? "#b2f0e6" : "#6b7280",
+              color: themeMode === 'dark' ? "#b2f0e6" : "#6b7280",
               fontWeight: 500,
               mb: 2,
             }}
@@ -220,13 +221,13 @@ const SetupPage = () => {
             <FormControlLabel
               control={
                 <Switch
-                  checked={darkMode}
-                  onChange={() => setDarkMode(!darkMode)}
+                  checked={themeMode === 'dark'}
+                  onChange={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
                   color="primary"
                   size="small"
                 />
               }
-              label={darkMode ? "Dark" : "Light"}
+              label={themeMode === 'dark' ? "Dark" : "Light"}
             />
           </Box>
 

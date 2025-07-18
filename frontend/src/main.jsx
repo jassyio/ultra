@@ -4,17 +4,16 @@ import { BrowserRouter } from "react-router-dom"; // ✅ Import Router
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { ChatProvider } from "./context/ChatContext"; 
-import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
-import theme from './theme';
+import { ThemeProvider } from './context/ThemeContext';
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter> {/* ✅ Wrap everything in Router */}
-    <AuthProvider>
-      <ChatProvider>
-        <MuiThemeProvider theme={theme}>
+    <ThemeProvider>
+      <AuthProvider>
+        <ChatProvider>
           <App />
-        </MuiThemeProvider>
-      </ChatProvider>
-    </AuthProvider>
+        </ChatProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </BrowserRouter>
 );

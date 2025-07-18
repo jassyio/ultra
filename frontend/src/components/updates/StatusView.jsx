@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Typography, Avatar, IconButton, LinearProgress, Paper } from '@mui/material';
+import { Box, Typography, Avatar, IconButton, LinearProgress, Paper, useTheme } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
@@ -10,6 +10,7 @@ const StatusView = ({ status, onClose, onNextUser, onPrevUser }) => {
   const statusItem = status.items[currentStatusItemIndex];
 
   const STATUS_DURATION = 5000; // 5 seconds per status item for mock
+  const theme = useTheme();
 
   // Handle automatic progression
   useEffect(() => {
@@ -77,10 +78,10 @@ const StatusView = ({ status, onClose, onNextUser, onPrevUser }) => {
         left: 0,
         width: '100vw',
         height: '100vh',
-        bgcolor: 'black',
+        bgcolor: theme.palette.background.default,
         display: 'flex',
         flexDirection: 'column',
-        color: 'white',
+        color: theme.palette.text.primary,
         zIndex: 9999,
         overflow: 'hidden',
       }}
@@ -97,7 +98,7 @@ const StatusView = ({ status, onClose, onNextUser, onPrevUser }) => {
               flexGrow: 1,
               height: 3,
               bgcolor: 'rgba(255,255,255,0.3)',
-              '& .MuiLinearProgress-bar': { bgcolor: 'white' },
+              '& .MuiLinearProgress-bar': { bgcolor: theme.palette.text.primary },
               mx: 0.25,
             }}
           />
@@ -107,8 +108,8 @@ const StatusView = ({ status, onClose, onNextUser, onPrevUser }) => {
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', p: 2, pt: 4, zIndex: 10 }}>
         <Avatar src={status.avatar} alt={status.name} sx={{ width: 40, height: 40, mr: 2 }} />
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>{status.name}</Typography>
-        <IconButton onClick={onClose} sx={{ color: 'white' }}>
+        <Typography variant="h6" sx={{ flexGrow: 1, color: theme.palette.text.primary }}>{status.name}</Typography>
+        <IconButton onClick={onClose} sx={{ color: theme.palette.text.primary }}>
           <CloseIcon />
         </IconButton>
       </Box>
@@ -116,7 +117,7 @@ const StatusView = ({ status, onClose, onNextUser, onPrevUser }) => {
       {/* Content */}
       <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
         {statusItem.type === 'text' && (
-          <Typography variant="h5" textAlign="center">{statusItem.content}</Typography>
+          <Typography variant="h5" textAlign="center" sx={{ color: theme.palette.text.primary }}>{statusItem.content}</Typography>
         )}
         {/* Add image/video handling here later */}
       </Box>

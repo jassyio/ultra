@@ -203,7 +203,7 @@ const ChatWindow = () => {
           }}
         />
       ) : (
-        <>
+        <Box>
           <TopNavbar
             title={chatTitle}
             avatar={chatAvatar}
@@ -211,7 +211,7 @@ const ChatWindow = () => {
             onBack={() => setSelectedChat(null)}
             actions={
               isGroup ? (
-                <>
+                <Box>
                   {/* Group Info Icon */}
                   <Tooltip title="Group Info">
                     <IconButton
@@ -255,9 +255,9 @@ const ChatWindow = () => {
                       <Videocam fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                </>
+                </Box>
               ) : (
-                <>
+                <Box>
                   <Tooltip title="Search Chat">
                     <IconButton>
                       <Search fontSize="small" />
@@ -288,21 +288,20 @@ const ChatWindow = () => {
                       <MoreVert fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                </>
+                </Box>
               )
             }
           />
 
-          <Box sx={{ flex: 1, overflowY: "auto", p: 1, position: 'relative' }}>
+          <Box sx={{ flex: 1, overflowY: "auto", p: 1, position: 'relative', pb: 10 }}>
             {loadingMessages ? (
-              // Display message skeletons when loadingMessages is true
               Array.from(new Array(10)).map((_, index) => (
-                <MessageSkeleton key={index} isOwn={index % 2 === 0} /> // Vary isOwn for different alignments
+                <MessageSkeleton key={index} isOwn={index % 2 === 0} />
               ))
             ) : (
               chatMessages.map((message, index) => (
                 <Message
-                  key={message._id || index} // Use index as fallback for pending messages
+                  key={message._id || index}
                   message={message}
                   isOwnMessage={message.sender === user?.id}
                 />
@@ -311,7 +310,7 @@ const ChatWindow = () => {
             <div ref={messagesEndRef} />
           </Box>
 
-          <MessageInput onSendMessage={handleSendMessage} />
+          <MessageInput chatId={selectedChat._id} onSendMessage={handleSendMessage} />
 
           {/* Group Management Modal */}
           <Dialog open={groupModalOpen} onClose={() => setGroupModalOpen(false)} maxWidth="sm" fullWidth>
@@ -321,7 +320,7 @@ const ChatWindow = () => {
               onClose={() => setGroupModalOpen(false)}
             />
           </Dialog>
-        </>
+        </Box>
       )}
     </Box>
   );

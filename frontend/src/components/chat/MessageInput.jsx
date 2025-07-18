@@ -1,7 +1,7 @@
 import { useState, useContext, useRef } from "react";
 import {
   Box, TextField, IconButton, Popover, List, ListItem, ListItemIcon, ListItemText,
-  CircularProgress, Divider
+  CircularProgress, Divider, useTheme
 } from "@mui/material";
 import {
   InsertEmoticon, AttachFile, CameraAlt, Mic, Send, Gif, Image, InsertDriveFile,
@@ -53,6 +53,7 @@ const MessageInput = ({ chatId, disabled }) => {
 
   const { isConnected, sendMessage } = useContext(SocketContext);
   const { user } = useContext(AuthContext);
+  const theme = useTheme();
 
   const fileInputRef = useRef();
   const imageInputRef = useRef();
@@ -188,12 +189,19 @@ const MessageInput = ({ chatId, disabled }) => {
         />
       </Box>
       <Box sx={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        width: '100%',
+        zIndex: 1200,
         display: "flex",
         alignItems: "flex-end",
         p: 1,
         borderTop: "1px solid",
         borderColor: "divider",
-        bgcolor: "background.paper"
+        bgcolor: theme.palette.mode === 'dark' ? theme.palette.background.default : "#f0f2f5",
+        borderRadius: 6,
+        boxShadow: theme.shadows[4],
       }}>
         {/* Emoji/GIF/Sticker */}
         <IconButton
@@ -290,7 +298,7 @@ const MessageInput = ({ chatId, disabled }) => {
           alignItems: "center",
           flex: 1,
           borderRadius: 20,
-          bgcolor: "#f0f2f5",
+          bgcolor: theme.palette.mode === 'dark' ? theme.palette.background.default : "#f0f2f5",
           px: 1,
           mr: 1,
           minHeight: 48
@@ -320,19 +328,37 @@ const MessageInput = ({ chatId, disabled }) => {
             variant="standard"
             fullWidth
             multiline
+            minRows={1}
             maxRows={4}
+            placeholder="Type a message"
             value={message}
             onChange={e => setMessage(e.target.value)}
-            placeholder={isConnected ? "Message" : "Connecting..."}
-            disabled={disabled || !isConnected || isRecording}
-            InputProps={{
-              disableUnderline: true,
-              sx: { px: 1, py: 1 }
-            }}
+            disabled={disabled || isSending}
             sx={{
+              mx: 1,
               flex: 1,
-              bgcolor: "transparent",
-              "& .MuiInputBase-input": { fontSize: 16 }
+              bgcolor: 'transparent',
+              color: theme.palette.text.primary,
+              '& .MuiInputBase-input': {
+                color: theme.palette.text.primary,
+              },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': {
+                  borderColor: theme.palette.divider,
+                },
+                '&:hover fieldset': {
+                  borderColor: theme.palette.primary.main,
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: theme.palette.primary.main,
+                },
+              },
+            }}
+            InputProps={{
+              style: {
+                color: theme.palette.text.primary,
+                background: 'transparent',
+              },
             }}
           />
 
@@ -383,6 +409,7 @@ const MessageInput = ({ chatId, disabled }) => {
             aria-label="attach"
             onClick={handleAttachMenuOpen}
             disabled={disabled || !isConnected}
+            sx={{ color: theme.palette.text.primary }}
           >
             <AttachFile />
           </IconButton>
@@ -419,6 +446,7 @@ const MessageInput = ({ chatId, disabled }) => {
             aria-label="camera"
             onClick={handleCamera}
             disabled={disabled || !isConnected}
+            sx={{ color: theme.palette.text.primary }}
           >
             <CameraAlt />
           </IconButton>
