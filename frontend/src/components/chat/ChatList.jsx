@@ -38,8 +38,21 @@ const ChatList = () => {
           <Box sx={{ textAlign: 'center', color: theme.palette.text.secondary, mt: 8 }}>No chats yet</Box>
         ) : (
           chats.map((chat) => {
-            const chatPartner = chat.participants.find((p) => p._id !== user?.id);
-            if (!chatPartner) return null;
+            // Detect group chat (has members array and a name)
+            const isGroup = !!chat.members && !!chat.name;
+            let displayName, displayAvatar;
+
+            if (isGroup) {
+              displayName = chat.name;
+              // Use group avatar if available, or fallback to default
+              displayAvatar = chat.avatar || "/default-group-avatar.png";
+            } else {
+              // One-on-one chat: find the other participant
+              const chatPartner = chat.participants.find((p) => p._id !== user?.id);
+              if (!chatPartner) return null;
+              displayName = chatPartner.name;
+              displayAvatar = chatPartner.avatar || "/default-avatar.png";
+            }
 
             return (
               <Box
@@ -65,27 +78,50 @@ const ChatList = () => {
                 }}
               >
                 <Avatar
-                  src={chatPartner.avatar || "/default-avatar.png"}
-                  alt={chatPartner.name}
+                  src={displayAvatar}
+                  alt={displayName}
                   sx={{ width: 49, height: 49, marginRight: "12px" }}
                 />
                 <Box sx={{ flex: 1, minWidth: 0, borderTop: "1px solid", borderColor: "divider", py: "10px" }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography variant="subtitle1" sx={{ fontSize: "17px", lineHeight: "21px", color: theme.palette.text.primary, fontWeight: 600, letterSpacing: 0.2 }}>
-                      {chatPartner.name}
+                      {displayName}
                     </Typography>
-                    {chat.lastMessage && (
-                      <Typography variant="caption" sx={{ fontSize: "xs", color: theme.palette.text.secondary }}>
-                        {new Date(chat.lastMessage.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </Typography>
-                    )}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {chat.lastMessage && (
+                        <Typography variant="caption" sx={{ fontSize: "xs", color: theme.palette.text.secondary }}>
+                          {new Date(chat.lastMessage.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </Typography>
+                      )}
+                      {chat.unreadCount > 0 && (
+                        <Box sx={{
+                          background: '#25d366',
+                          color: 'white',
+                          borderRadius: '50%',
+                          minWidth: 22,
+                          height: 22,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.85em',
+                          ml: 1,
+                          px: 1,
+                        }}>
+                          {chat.unreadCount}
+                        </Box>
+                      )}
+                    </Box>
                   </Box>
-                  {chat.lastMessage && (
+                  {chat.lastMessage ? (
                     <Typography variant="body2" sx={{ fontSize: "14px", color: theme.palette.text.secondary, truncate: true, mt: 0.5 }}>
                       {chat.lastMessage.content}
+                    </Typography>
+                  ) : (
+                    <Typography variant="body2" sx={{ fontSize: "14px", color: theme.palette.text.secondary, truncate: true, mt: 0.5 }}>
+                      No messages yet
                     </Typography>
                   )}
                 </Box>

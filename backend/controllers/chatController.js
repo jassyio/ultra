@@ -34,10 +34,23 @@ exports.accessOrCreateChatByEmail = async (req, res) => {
 exports.getUserChats = async (req, res) => {
   try {
     const userId = req.user.id;
-    const chats = await Chat.find({ participants: userId })
+    let chats = await Chat.find({ participants: userId })
       .populate("participants", "name email avatar")
       .populate("lastMessage", "content sender createdAt")
-      .sort({ updatedAt: -1 }); // Most recent first
+      .sort({ updatedAt: -1 });
+
+    // Fix chats with missing lastMessage
+    for (let chat of chats) {
+      if (!chat.lastMessage) {
+        const lastMsg = await Message.findOne({ chatId: chat._id })
+          .sort({ createdAt: -1 });
+        if (lastMsg) {
+          chat.lastMessage = lastMsg;
+          // Optionally update the Chat document in DB
+          await Chat.findByIdAndUpdate(chat._id, { lastMessage: lastMsg._id });
+        }
+      }
+    }
 
     res.status(200).json(chats);
   } catch (err) {
@@ -68,23 +81,61 @@ exports.getChats = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Fetch direct chats
+    // Direct chats
     const chats = await Chat.find({ participants: userId })
       .populate("participants", "name email avatar")
-      .populate("lastMessage", "content sender createdAt")
       .sort({ updatedAt: -1 });
 
-    // Fetch groups where user is a member
+    const chatList = await Promise.all(chats.map(async (chat) => {
+      // Get latest message
+      const lastMessage = await Message.findOne({ chatId: chat._id })
+        .sort({ createdAt: -1 })
+        .populate("sender", "name email avatar");
+
+      // Count unread messages
+      const unreadCount = await Message.countDocuments({
+        chatId: chat._id,
+        sender: { $ne: userId },
+        "readBy.user": { $ne: userId }
+      });
+
+      return {
+        ...chat.toObject(),
+        lastMessage,
+        unreadCount
+      };
+    }));
+
+    // Groups
     const groups = await Group.find({ "members.user": userId })
       .populate("members.user", "name email avatar")
-      .populate("lastMessage", "content sender createdAt")
       .sort({ updatedAt: -1 });
 
-    const combined = [...chats, ...groups];
+    const groupList = await Promise.all(groups.map(async (group) => {
+      // Get latest message
+      const lastMessage = await Message.findOne({ groupId: group._id })
+        .sort({ createdAt: -1 })
+        .populate("sender", "name email avatar");
+
+      // Count unread messages
+      const unreadCount = await Message.countDocuments({
+        groupId: group._id,
+        sender: { $ne: userId },
+        "readBy.user": { $ne: userId }
+      });
+
+      return {
+        ...group.toObject(),
+        lastMessage,
+        unreadCount
+      };
+    }));
+
+    const combined = [...chatList, ...groupList];
 
     res.json(combined);
   } catch (err) {
-    console.error("❌ Error in getChats:", err); // Add this line for debugging
+    console.error("❌ Error in getChats:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
