@@ -33,6 +33,18 @@ const MessageSchema = new mongoose.Schema(
         },
       },
     ],
+    deliveredTo: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        deliveredAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     // Message types: text, image, voice, etc.
     messageType: {
       type: String,
