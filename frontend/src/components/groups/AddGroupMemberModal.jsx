@@ -2,6 +2,9 @@ import { useState } from "react";
 import { FaTimes, FaUserPlus } from "react-icons/fa";
 import axios from "axios";
 import groupService from "../../api/groupService";
+import { Modal, Box, Button, TextField, Typography, Alert, CircularProgress, Avatar, IconButton } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import CloseIcon from '@mui/icons-material/Close';
 
 const AddGroupMemberModal = ({ groupId, onClose, onMemberAdded }) => {
   const [email, setEmail] = useState("");
@@ -10,6 +13,7 @@ const AddGroupMemberModal = ({ groupId, onClose, onMemberAdded }) => {
   const [foundUser, setFoundUser] = useState(null);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState(""); // State for success message
+  const theme = useTheme();
 
   const handleCheckEmail = async () => {
     setError("");
@@ -72,101 +76,123 @@ const AddGroupMemberModal = ({ groupId, onClose, onMemberAdded }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-11/12 max-w-sm">
-        <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
-          <h2 className="text-lg font-semibold">Add Group Member</h2>
-          <button onClick={handleClose} className="text-gray-500">
-            <FaTimes />
-          </button>
-        </div>
-        <div className="p-4">
-          {error && (
-            <div className="mb-3 p-2 bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 rounded">
-              {error}
-            </div>
-          )}
-          {successMessage && (
-            <div className="mb-3 p-2 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 rounded">
-              {successMessage}
-            </div>
-          )}
+    <Modal open onClose={handleClose}>
+      <Box sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        p: 2,
+        zIndex: 2000,
+      }}>
+        <Box sx={{
+          bgcolor: theme.palette.background.paper,
+          borderRadius: 3,
+          boxShadow: theme.shadows[6],
+          width: '100%',
+          maxWidth: 400,
+          p: 3,
+          position: 'relative',
+        }}>
+          <IconButton onClick={handleClose} sx={{ position: 'absolute', right: 12, top: 12, color: theme.palette.text.secondary }}>
+            <CloseIcon />
+          </IconButton>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: theme.palette.text.primary, textAlign: 'center' }}>
+            Add Group Member
+          </Typography>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {successMessage && <Alert severity="success" sx={{ mb: 2 }}>{successMessage}</Alert>}
           {!foundUser ? (
             <>
-              <label className="block text-sm font-medium mb-1">
-                Enter user email
-              </label>
-              <div className="flex gap-2 mb-4">
-                <input
+              <Typography variant="body2" sx={{ mb: 2, color: theme.palette.text.secondary, textAlign: 'center' }}>
+                Enter the email of the user you want to add
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+                <TextField
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={e => setEmail(e.target.value)}
                   placeholder="user@email.com"
-                  className="flex-1 p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                  fullWidth
+                  size="small"
                   disabled={checking || adding}
-                  onKeyDown={(e) => {
+                  onKeyDown={e => {
                     if (e.key === "Enter") {
                       e.preventDefault();
                       handleCheckEmail();
                     }
                   }}
+                  sx={{ bgcolor: theme.palette.background.default, borderRadius: 2 }}
                 />
-                <button
-                  type="button"
-                  className="px-3 py-2 bg-blue-500 text-white rounded"
+                <Button
+                  variant="contained"
+                  sx={{
+                    minWidth: 44,
+                    minHeight: 44,
+                    background: 'linear-gradient(135deg, #8360c3 0%, #2ebf91 100%)',
+                    color: '#fff',
+                    fontWeight: 'bold',
+                    borderRadius: 2,
+                    boxShadow: theme.shadows[2],
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #2ebf91 0%, #8360c3 100%)',
+                    },
+                  }}
                   onClick={handleCheckEmail}
                   disabled={checking || adding}
                 >
-                  {checking ? "..." : <FaUserPlus />}
-                </button>
-              </div>
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="px-4 py-2 text-gray-500"
-                  disabled={checking || adding}
-                >
-                  Cancel
-                </button>
-              </div>
+                  {checking ? <CircularProgress size={20} /> : <FaUserPlus />}
+                </Button>
+              </Box>
+              <Button
+                onClick={handleClose}
+                sx={{ color: theme.palette.text.secondary, mt: 1 }}
+                fullWidth
+              >
+                Cancel
+              </Button>
             </>
           ) : (
             <>
-              <div className="flex items-center gap-3 mb-4">
-                <img
-                  src={foundUser.avatar || "/default-avatar.png"}
-                  alt={foundUser.name}
-                  className="w-10 h-10 rounded-full"
-                />
-                <div>
-                  <div className="font-semibold">{foundUser.name}</div>
-                  <div className="text-xs text-gray-500">{foundUser.email}</div>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded"
-                  onClick={handleAddMember}
-                  disabled={adding}
-                >
-                  {adding ? "Adding..." : "Add to Group"}
-                </button>
-                <button
-                  type="button"
-                  className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded"
-                  onClick={handleClose}
-                  disabled={adding}
-                >
-                  Cancel
-                </button>
-              </div>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3, justifyContent: 'center' }}>
+                <Avatar src={foundUser.avatar || "/default-avatar.png"} alt={foundUser.name} sx={{ width: 56, height: 56, borderRadius: '50%' }} />
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>{foundUser.name}</Typography>
+                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>{foundUser.email}</Typography>
+                </Box>
+              </Box>
+              <Button
+                variant="contained"
+                fullWidth
+                sx={{
+                  background: 'linear-gradient(135deg, #8360c3 0%, #2ebf91 100%)',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  borderRadius: 2,
+                  mb: 1,
+                  boxShadow: theme.shadows[2],
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #2ebf91 0%, #8360c3 100%)',
+                  },
+                }}
+                onClick={handleAddMember}
+                disabled={adding}
+                startIcon={<FaUserPlus />}
+              >
+                {adding ? <CircularProgress size={20} /> : "Add to Group"}
+              </Button>
+              <Button
+                onClick={handleClose}
+                sx={{ color: theme.palette.text.secondary }}
+                fullWidth
+              >
+                Cancel
+              </Button>
             </>
           )}
-        </div>
-      </div>
-    </div>
+        </Box>
+      </Box>
+    </Modal>
   );
 };
 

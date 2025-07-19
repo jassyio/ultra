@@ -2,7 +2,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { ChatContext } from "../../context/ChatContext";
 import { SocketContext } from "../../context/SocketContext";
 import { AuthContext } from "../../context/AuthContext";
-import { Box, IconButton, Tooltip, Dialog, Tabs, Tab, Typography, Button, Avatar } from "@mui/material";
+import { Box, IconButton, Tooltip, Dialog, Tabs, Tab, Typography, Button, Avatar, Divider } from "@mui/material";
 import Message from "./Message";
 import MessageInput from "./MessageInput";
 import TopNavbar from "../layout/TopNavbar";
@@ -18,6 +18,7 @@ import CallInterface from "../calls/CallInterface";
 import Videocam from "@mui/icons-material/Videocam";
 import axios from "axios";
 import MessageSkeleton from "./MessageSkeleton"; // Import MessageSkeleton
+import CloseIcon from '@mui/icons-material/Close';
 
 const ChatWindow = () => {
   const {
@@ -36,9 +37,10 @@ const ChatWindow = () => {
 
   const messagesEndRef = useRef(null);
 
-  // Single modal state and tab index
-  const [groupModalOpen, setGroupModalOpen] = useState(false);
-  const [groupTab, setGroupTab] = useState(0);
+  // Remove old modal/tab state and debug
+  // Add clean state for new modals
+  const [groupInfoOpen, setGroupInfoOpen] = useState(false);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [callActive, setCallActive] = useState(false); // New state for call active
   const [isVideoCall, setIsVideoCall] = useState(false); // State to toggle between voice and video calls
 
@@ -215,7 +217,7 @@ const ChatWindow = () => {
                   {/* Group Info Icon */}
                   <Tooltip title="Group Info">
                     <IconButton
-                      onClick={() => setGroupModalOpen(true)} // Open group info modal
+                      onClick={() => setGroupInfoOpen(true)} // Open group info modal
                     >
                       <PeopleIcon fontSize="small" />
                     </IconButton>
@@ -224,7 +226,7 @@ const ChatWindow = () => {
                   {/* Add Member Icon */}
                   <Tooltip title="Add Member">
                     <IconButton
-                      onClick={() => setGroupTab(1) || setGroupModalOpen(true)} // Open add member tab in modal
+                      onClick={() => setAddMemberOpen(true)} // Open add member modal
                     >
                       <GroupAddIcon fontSize="small" />
                     </IconButton>
@@ -312,13 +314,66 @@ const ChatWindow = () => {
 
           <MessageInput chatId={selectedChat._id} onSendMessage={handleSendMessage} />
 
-          {/* Group Management Modal */}
-          <Dialog open={groupModalOpen} onClose={() => setGroupModalOpen(false)} maxWidth="sm" fullWidth>
-            <GroupManagementModal
-              groupId={selectedChat?._id}
-              initialTab={groupTab}
-              onClose={() => setGroupModalOpen(false)}
-            />
+          {/* Group Info Modal */}
+          <Dialog open={groupInfoOpen} onClose={() => setGroupInfoOpen(false)} maxWidth="xs" fullWidth>
+            <Box sx={{ p: 3, bgcolor: theme => theme.palette.background.paper, position: 'relative' }}>
+              <IconButton onClick={() => setGroupInfoOpen(false)} sx={{ position: 'absolute', top: 8, right: 8, color: theme => theme.palette.text.secondary }}>
+                <CloseIcon />
+              </IconButton>
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
+                <Box
+                  sx={{
+                    width: 96,
+                    height: 96,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #8360c3 0%, #2ebf91 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mb: 2,
+                  }}
+                >
+                  <Avatar
+                    src={chat?.avatar || "/default-group-avatar.png"}
+                    sx={{
+                      width: 88,
+                      height: 88,
+                      borderRadius: '50%',
+                      background: theme => theme.palette.background.paper,
+                      border: theme => `2px solid ${theme.palette.background.paper}`,
+                    }}
+                  />
+                </Box>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', color: theme => theme.palette.text.primary }}>{chat?.name || 'Group'}</Typography>
+                {chat?.description && (
+                  <Typography variant="body2" sx={{ color: theme => theme.palette.text.secondary, mt: 1, textAlign: 'center' }}>{chat.description}</Typography>
+                )}
+                <Typography variant="caption" sx={{ color: theme => theme.palette.text.secondary, mt: 1 }}>
+                  Created by {chat?.creator?.name || 'Unknown'} on {chat?.createdAt ? new Date(chat.createdAt).toLocaleDateString() : 'N/A'}
+                </Typography>
+              </Box>
+              <Divider sx={{ mb: 2 }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: theme => theme.palette.text.primary, mb: 1 }}>Members</Typography>
+              <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
+                {Array.isArray(chat?.members) && chat.members.length > 0 ? (
+                  chat.members.map(member => (
+                    <Box key={member._id} sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                      <Avatar src={member?.user?.avatar || "/default-avatar.png"} sx={{ width: 32, height: 32, mr: 1, borderRadius: '50%' }} />
+                      <Typography variant="body2" sx={{ color: theme => theme.palette.text.primary, fontWeight: 500 }}>{member?.user?.name || 'Unknown'}</Typography>
+                      {member?.isAdmin && (
+                        <Box sx={{ ml: 1, px: 1, borderRadius: 1, fontSize: 12, fontWeight: 'bold', background: 'linear-gradient(135deg, #8360c3 0%, #2ebf91 100%)', color: '#fff', letterSpacing: 0.5 }}>admin</Box>
+                      )}
+                    </Box>
+                  ))
+                ) : (
+                  <Typography variant="body2" sx={{ color: theme => theme.palette.text.secondary }}>No members</Typography>
+                )}
+              </Box>
+            </Box>
+          </Dialog>
+          {/* Add Member Modal */}
+          <Dialog open={addMemberOpen} onClose={() => setAddMemberOpen(false)} maxWidth="xs" fullWidth>
+            <AddGroupMemberModal groupId={selectedChat?._id} onClose={() => setAddMemberOpen(false)} />
           </Dialog>
         </Box>
       )}
