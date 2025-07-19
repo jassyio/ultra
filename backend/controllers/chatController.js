@@ -117,6 +117,10 @@ exports.getChats = async (req, res) => {
         .sort({ createdAt: -1 })
         .populate("sender", "name email avatar");
 
+      if (!lastMessage) {
+        console.log(`No lastMessage found for group ${group.name} (${group._id})`);
+      }
+
       // Count unread messages
       const unreadCount = await Message.countDocuments({
         groupId: group._id,

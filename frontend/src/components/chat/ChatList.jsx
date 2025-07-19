@@ -44,11 +44,10 @@ const ChatList = () => {
 
             if (isGroup) {
               displayName = chat.name;
-              // Use group avatar if available, or fallback to default
               displayAvatar = chat.avatar || "/default-group-avatar.png";
             } else {
               // One-on-one chat: find the other participant
-              const chatPartner = chat.participants.find((p) => p._id !== user?.id);
+              const chatPartner = chat.participants?.find((p) => p._id !== user?.id);
               if (!chatPartner) return null;
               displayName = chatPartner.name;
               displayAvatar = chatPartner.avatar || "/default-avatar.png";
