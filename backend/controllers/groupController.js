@@ -47,7 +47,7 @@ exports.createGroup = async (req, res) => {
     const group = await Group.findById(newGroup._id)
       .populate('creator', 'name email')
       .populate('admins', 'name email')
-      .populate('members.user', 'name email avatar');
+      .populate('members.user', 'name email');
 
     res.status(201).json({
       success: true,
@@ -98,9 +98,8 @@ exports.getGroupById = async (req, res) => {
 
   try {
     const group = await Group.findById(groupId)
-      .populate('creator', 'name email')
-      .populate('admins', 'name email')
-      .populate('members.user', 'name email');
+      .populate('creator', 'name avatar')
+      .populate('members.user', 'name avatar');
 
     if (!group) {
       return res.status(404).json({ message: "Group not found" });
@@ -109,7 +108,7 @@ exports.getGroupById = async (req, res) => {
     // Check if the user is a member of the group
     const userId = req.user._id;
     const isMember = group.members.some(member => 
-      member.user._id.toString() === userId.toString()
+      member.user && member.user._id.toString() === userId.toString()
     );
 
     if (!isMember) {
@@ -119,9 +118,24 @@ exports.getGroupById = async (req, res) => {
       });
     }
 
+    // Ensure isAdmin is present for all members and filter out invalid members
+    let membersWithAdmin = group.members
+      .filter(member => member.user && member.user.name) // Only valid populated members
+      .map(member => ({
+        ...member.toObject(),
+        isAdmin: group.admins.some(adminId => adminId.toString() === member.user._id.toString()),
+        user: member.user,
+      }));
+    const groupObj = group.toObject();
+    groupObj.members = membersWithAdmin;
+    // Ensure creator is always present
+    if (!groupObj.creator || !groupObj.creator.name) {
+      groupObj.creator = { name: 'Unknown' };
+    }
+
     res.status(200).json({
       success: true,
-      data: group
+      data: groupObj
     });
   } catch (error) {
     console.error('Get group by ID error:', error);

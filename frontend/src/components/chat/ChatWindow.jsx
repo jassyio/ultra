@@ -357,16 +357,71 @@ const ChatWindow = () => {
               <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
                 {Array.isArray(chat?.members) && chat.members.length > 0 ? (
                   chat.members.map(member => (
-                    <Box key={member._id} sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
-                      <Avatar src={member?.user?.avatar || "/default-avatar.png"} sx={{ width: 32, height: 32, mr: 1, borderRadius: '50%' }} />
-                      <Typography variant="body2" sx={{ color: theme => theme.palette.text.primary, fontWeight: 500 }}>{member?.user?.name || 'Unknown'}</Typography>
+                    <Box
+                      key={member._id || (member.user && member.user._id) || Math.random()}
+                      sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}
+                    >
+                      <Avatar
+                        src={member?.user?.avatar || "/default-avatar.png"}
+                        sx={{ width: 32, height: 32, mr: 1, borderRadius: '50%' }}
+                      />
+                      <Typography variant="body2" sx={{ color: theme => theme.palette.text.primary, fontWeight: 500 }}>
+                        {member?.user?.name || 'Unknown'}
+                      </Typography>
                       {member?.isAdmin && (
-                        <Box sx={{ ml: 1, px: 1, borderRadius: 1, fontSize: 12, fontWeight: 'bold', background: 'linear-gradient(135deg, #8360c3 0%, #2ebf91 100%)', color: '#fff', letterSpacing: 0.5 }}>admin</Box>
+                        <Box
+                          sx={{
+                            ml: 1,
+                            px: 1,
+                            borderRadius: 1,
+                            fontSize: 12,
+                            fontWeight: 'bold',
+                            background: 'linear-gradient(135deg, #8360c3 0%, #2ebf91 100%)',
+                            color: '#fff',
+                            letterSpacing: 0.5
+                          }}
+                        >
+                          admin
+                        </Box>
                       )}
+                      {user &&
+                        chat.members.find(
+                          m => m.user && m.user._id === user.id && m.isAdmin
+                        ) &&
+                        !member.isAdmin &&
+                        member.user &&
+                        member.user._id !== user.id && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              ml: 1,
+                              fontSize: 12,
+                              borderRadius: 2,
+                              borderColor: 'primary.main',
+                              color: 'primary.main',
+                              textTransform: 'none',
+                              minWidth: 0,
+                              px: 1
+                            }}
+                            onClick={async () => {
+                              if (member.user && member.user._id) {
+                                await axios.post(`/api/groups/${chat._id}/admins`, {
+                                  memberId: member.user._id
+                                });
+                                fetchMessagesForChat(chat._id);
+                              }
+                            }}
+                          >
+                            Make admin
+                          </Button>
+                        )}
                     </Box>
                   ))
                 ) : (
-                  <Typography variant="body2" sx={{ color: theme => theme.palette.text.secondary }}>No members</Typography>
+                  <Typography variant="body2" sx={{ color: theme => theme.palette.text.secondary }}>
+                    No members
+                  </Typography>
                 )}
               </Box>
             </Box>
