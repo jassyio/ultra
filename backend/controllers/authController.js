@@ -39,6 +39,9 @@ const register = async (req, res) => {
     user.otp = otp;
     user.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
 
+    // Log OTP to terminal for debugging
+    console.log(`[DEBUG] OTP for ${email}: ${otp}`);
+
     await user.save();
 
     const emailSent = await sendOTPEmail(email, otp);
