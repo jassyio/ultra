@@ -44,7 +44,7 @@ const MessageSchema = new mongoose.Schema(
     // For message status
     status: {
       type: String,
-      enum: ["sent", "delivered", "read"],
+      enum: ["not_sent", "sent", "delivered", "read", "failed"],
       default: "sent",
     },
   },
