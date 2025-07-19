@@ -98,7 +98,7 @@ exports.getGroupById = async (req, res) => {
 
   try {
     const group = await Group.findById(groupId)
-      .populate('creator', 'name avatar')
+      .populate('creator', 'name email avatar')
       .populate('members.user', 'name avatar');
 
     if (!group) {
@@ -128,9 +128,9 @@ exports.getGroupById = async (req, res) => {
       }));
     const groupObj = group.toObject();
     groupObj.members = membersWithAdmin;
-    // Ensure creator is always present
+    // Ensure creator is always present and not 'Unknown' if user exists
     if (!groupObj.creator || !groupObj.creator.name) {
-      groupObj.creator = { name: 'Unknown' };
+      groupObj.creator = { _id: group.creator?._id || '', name: 'Unknown', email: '' };
     }
 
     res.status(200).json({

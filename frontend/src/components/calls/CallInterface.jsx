@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Avatar, IconButton, Box, Typography, Button } from "@mui/material";
+import { Avatar, IconButton, Box, Typography, Button, useTheme } from "@mui/material";
 import { Mic, MicOff, Videocam, VideocamOff, Speaker, CallEnd } from "@mui/icons-material";
 import io from "socket.io-client";
 
 const socket = io("http://localhost:3001"); // Adjust the URL to your server
 
 const CallInterface = ({ participants, groupName, groupAvatar, isVideoCall, onEndCall }) => {
+  const theme = useTheme();
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
   const [isVideo, setIsVideo] = useState(isVideoCall); // Initialize with the isVideoCall prop
@@ -72,7 +73,7 @@ const CallInterface = ({ participants, groupName, groupAvatar, isVideoCall, onEn
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "space-between",
-        bgcolor: "#000", // WhatsApp-like dark background
+        background: theme.palette.primary.gradient,
         color: "white",
         padding: 2,
       }}
