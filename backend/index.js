@@ -28,6 +28,8 @@ const allowedOrigins = [
   "http://localhost:3001", // Local backend
   "https://ultra-frontend-zeta.vercel.app", // Hosted frontend
   "https://ultra-frontend-git-main-jassyios-projects.vercel.app", // Another hosted frontend
+  "https://ultra-frontend-drrkoaz8n-jassyios-projects.vercel.app", // Production deployment
+  "https://ultra-frontend.vercel.app" // Main Vercel domain
 ];
 
 app.use(
