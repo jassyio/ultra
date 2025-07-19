@@ -28,7 +28,9 @@ const VerificationPage = () => {
     setError('');
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || (import.meta.env.MODE === "production" ? "https://ultra-3il5.onrender.com" : "http://localhost:3001");
+      const backendUrl = import.meta.env.MODE === "production"
+        ? "https://ultra-3il5.onrender.com"
+        : "http://localhost:3001";
       const response = await axios.post(`${backendUrl}/api/auth/verify-otp`, {
         email,
         otp
@@ -56,7 +58,9 @@ const VerificationPage = () => {
 
     try {
       setResendDisabled(true);
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const backendUrl = import.meta.env.MODE === "production"
+        ? "https://ultra-3il5.onrender.com"
+        : "http://localhost:3001";
       await axios.post(`${backendUrl}/api/auth/resend-otp`, { email });
       
       // Start countdown

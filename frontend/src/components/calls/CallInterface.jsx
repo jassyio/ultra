@@ -3,7 +3,7 @@ import { Avatar, IconButton, Box, Typography, Button, useTheme } from "@mui/mate
 import { Mic, MicOff, Videocam, VideocamOff, Speaker, CallEnd } from "@mui/icons-material";
 import io from "socket.io-client";
 
-const socket = io("http://localhost:3001"); // Adjust the URL to your server
+const socket = io(import.meta.env.MODE === "production" ? "https://ultra-3il5.onrender.com" : "http://localhost:3001"); // Adjust the URL to your server
 
 const CallInterface = ({ participants, groupName, groupAvatar, isVideoCall, onEndCall }) => {
   const theme = useTheme();

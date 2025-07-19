@@ -23,7 +23,9 @@ export const AuthProvider = ({ children }) => {
           
           // Verify token with backend
           try {
-            const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://ultra-3il5.onrender.com';
+            const backendUrl = import.meta.env.MODE === "production"
+              ? "https://ultra-3il5.onrender.com"
+              : "http://localhost:3001";
             await axios.get(`${backendUrl}/api/auth/verify`, {
               headers: { Authorization: `Bearer ${token}` }
             });
