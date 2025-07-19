@@ -19,14 +19,31 @@ const MainLayout = ({ children }) => {
   }, [path]);
 
   return (
-    <div className="flex flex-col h-screen">
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: '100vh',
+      width: '100vw',
+      background: 'inherit',
+      margin: 0,
+      padding: 0,
+      boxSizing: 'border-box',
+    }}>
       {user && showNavbars && (
         <div className="fixed top-0 w-full z-50">
           <TopNavbar title={currentTitle} />
         </div>
       )}
 
-      <div className={`flex-grow flex items-center justify-center ${showNavbars ? "pt-16 pb-16" : ""}`}>
+      <div style={{
+        flex: 1,
+        width: '100vw',
+        minHeight: '100vh',
+        margin: 0,
+        padding: 0,
+        boxSizing: 'border-box',
+        display: 'block',
+      }}>
         {children}
       </div>
 

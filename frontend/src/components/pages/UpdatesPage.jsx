@@ -138,7 +138,7 @@ const UpdatesPage = () => {
   const otherStatuses = statuses.filter(s => !s.isOwn); // Use statuses state
 
   return (
-    <Box sx={{ maxWidth: 480, margin: '0 auto', px: 2, pt: { xs: '56px', sm: '64px' }, pb: '64px', bgcolor: theme.palette.background.default, minHeight: '100vh' }}>
+    <Box sx={{ maxWidth: 480, margin: '0 auto', px: 0, pt: { xs: '56px', sm: '64px' }, pb: '64px', bgcolor: theme.palette.background.default, minHeight: '100vh' }}>
       {/* Your own status */}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, mt: 2 }}>
         <Avatar src={ownStatus.avatar} alt="Your avatar" sx={{ width: 56, height: 56, mr: 2 }} />
@@ -159,7 +159,7 @@ const UpdatesPage = () => {
         {otherStatuses.map(status => (
           <Box
             key={status.id}
-            sx={{ display: 'flex', alignItems: 'center', mb: 2, cursor: 'pointer', opacity: status.seen ? 0.6 : 1 }}
+            sx={{ display: 'flex', alignItems: 'center', mb: 2, cursor: 'pointer', opacity: status.seen ? 0.6 : 1, border: `1px solid ${theme.palette.divider}`, borderRadius: 2, px: 2, py: 1 }}
             onClick={() => handleStatusClick(status)}
           >
             <Avatar src={status.avatar} alt={status.name} sx={{ width: 48, height: 48, mr: 2, border: status.seen ? '2px solid #bbb' : `2px solid ${theme.palette.primary.main}` }} />

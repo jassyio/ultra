@@ -195,23 +195,23 @@ const MessageInput = ({ chatId, disabled }) => {
         width: '100%',
         zIndex: 1200,
         display: "flex",
-        alignItems: "flex-end",
-        p: 1,
-        borderTop: "1px solid",
-        borderColor: "divider",
-        bgcolor: theme.palette.mode === 'dark' ? theme.palette.background.default : "#f0f2f5",
-        borderRadius: 6,
-        boxShadow: theme.shadows[4],
+        alignItems: "center",
+        p: 0,
+        borderTop: `1px solid ${theme.palette.divider}`,
+        bgcolor: theme.palette.background.default,
+        boxShadow: theme.shadows[2],
       }}>
-        {/* Emoji/GIF/Sticker */}
-        <IconButton
-          aria-label="emoji"
-          onClick={handleEmojiMenuOpen}
-          disabled={disabled || !isConnected}
-          sx={{ mr: 0.5 }}
-        >
-          <InsertEmoticon />
-        </IconButton>
+        {/* Emoji button (outside input area, left) */}
+        <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', pl: 1, pr: 0.5 }}>
+          <IconButton
+            aria-label="emoji"
+            onClick={handleEmojiMenuOpen}
+            disabled={disabled || !isConnected}
+            sx={{}}
+          >
+            <InsertEmoticon />
+          </IconButton>
+        </Box>
         <Popover
           open={Boolean(emojiAnchor)}
           anchorEl={emojiAnchor}
@@ -292,38 +292,18 @@ const MessageInput = ({ chatId, disabled }) => {
           </Box>
         </Popover>
 
-        {/* Input area */}
+        {/* Typing area with attach and image icons inside */}
         <Box sx={{
           display: "flex",
           alignItems: "center",
           flex: 1,
           borderRadius: 20,
-          bgcolor: theme.palette.mode === 'dark' ? theme.palette.background.default : "#f0f2f5",
+          bgcolor: theme.palette.mode === 'dark' ? theme.palette.background.paper : "#f0f2f5",
           px: 1,
-          mr: 1,
-          minHeight: 48
+          minHeight: 48,
+          border: `1px solid ${theme.palette.divider}`,
+          boxShadow: 'none',
         }}>
-          {/* Media preview */}
-          {mediaPreview && (
-            <Box sx={{ mr: 1, display: "flex", alignItems: "center" }}>
-              {mediaType === "image" && (
-                <img src={mediaPreview} alt="preview" style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover" }} />
-              )}
-              {mediaType === "video" && (
-                <video src={mediaPreview} controls style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover" }} />
-              )}
-              {mediaType === "audio" && (
-                <Audiotrack color="primary" />
-              )}
-              {mediaType === "gif" && (
-                <img src={mediaPreview} alt="gif" style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover" }} />
-              )}
-              {mediaType === "sticker" && (
-                <img src={mediaPreview} alt="sticker" style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover" }} />
-              )}
-              <IconButton size="small" onClick={handleCancelMedia}>✕</IconButton>
-            </Box>
-          )}
           <TextField
             variant="standard"
             fullWidth
@@ -342,69 +322,18 @@ const MessageInput = ({ chatId, disabled }) => {
               '& .MuiInputBase-input': {
                 color: theme.palette.text.primary,
               },
-              '& .MuiOutlinedInput-root': {
-                '& fieldset': {
-                  borderColor: theme.palette.divider,
-                },
-                '&:hover fieldset': {
-                  borderColor: theme.palette.primary.main,
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: theme.palette.primary.main,
-                },
-              },
             }}
             InputProps={{
               style: {
                 color: theme.palette.text.primary,
                 background: 'transparent',
               },
+              disableUnderline: true,
             }}
           />
-
           {/* Attach */}
-          <input
-            type="file"
-            hidden
-            ref={fileInputRef}
-            onChange={e => handleFileChange(e, "file")}
-          />
-          <input
-            type="file"
-            accept="image/*"
-            hidden
-            ref={imageInputRef}
-            onChange={e => handleFileChange(e, "image")}
-          />
-          <input
-            type="file"
-            accept="video/*"
-            hidden
-            ref={videoInputRef}
-            onChange={e => handleFileChange(e, "video")}
-          />
-          <input
-            type="file"
-            accept="audio/*"
-            hidden
-            ref={audioInputRef}
-            onChange={e => handleFileChange(e, "audio")}
-          />
-          <input
-            type="file"
-            accept="image/*,video/*"
-            capture="environment"
-            hidden
-            ref={cameraInputRef}
-            onChange={e => {
-              const file = e.target.files[0];
-              if (!file) return;
-              setMediaType(file.type.startsWith("image") ? "image" : "video");
-              setMediaBlob(file);
-              setMediaPreview(URL.createObjectURL(file));
-              setMessage(file.name);
-            }}
-          />
+          <input type="file" hidden ref={fileInputRef} onChange={e => handleFileChange(e, "file")} />
+          <input type="file" accept="image/*" hidden ref={imageInputRef} onChange={e => handleFileChange(e, "image")} />
           <IconButton
             aria-label="attach"
             onClick={handleAttachMenuOpen}
@@ -440,11 +369,10 @@ const MessageInput = ({ chatId, disabled }) => {
               ))}
             </List>
           </Popover>
-
-          {/* Camera */}
+          {/* Image icon */}
           <IconButton
-            aria-label="camera"
-            onClick={handleCamera}
+            aria-label="image"
+            onClick={() => imageInputRef.current.click()}
             disabled={disabled || !isConnected}
             sx={{ color: theme.palette.text.primary }}
           >
@@ -452,29 +380,31 @@ const MessageInput = ({ chatId, disabled }) => {
           </IconButton>
         </Box>
 
-        {/* Mic/Send (outside input area, right-aligned) */}
-        {(!message.trim() && !mediaBlob && !mediaPreview && !isRecording) ? (
-          <IconButton
-            color={isRecording ? "secondary" : "primary"}
-            aria-label="mic"
-            disabled={disabled || !isConnected}
-            onMouseDown={handleStartRecording}
-            onMouseUp={handleStopRecording}
-            onTouchStart={handleStartRecording}
-            onTouchEnd={handleStopRecording}
-          >
-            <Mic />
-          </IconButton>
-        ) : (
-          <IconButton
-            color="primary"
-            aria-label="send"
-            onClick={handleSend}
-            disabled={(!message.trim() && !mediaBlob && !mediaPreview) || !isConnected || isSending || disabled}
-          >
-            {isSending ? <CircularProgress size={24} /> : <Send />}
-          </IconButton>
-        )}
+        {/* Mic/Send button (outside input area, right) */}
+        <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', pl: 0.5, pr: 1 }}>
+          {(!message.trim() && !mediaBlob && !mediaPreview && !isRecording) ? (
+            <IconButton
+              color={isRecording ? "secondary" : "primary"}
+              aria-label="mic"
+              disabled={disabled || !isConnected}
+              onMouseDown={handleStartRecording}
+              onMouseUp={handleStopRecording}
+              onTouchStart={handleStartRecording}
+              onTouchEnd={handleStopRecording}
+            >
+              <Mic />
+            </IconButton>
+          ) : (
+            <IconButton
+              color="primary"
+              aria-label="send"
+              onClick={handleSend}
+              disabled={(!message.trim() && !mediaBlob && !mediaPreview) || !isConnected || isSending || disabled}
+            >
+              {isSending ? <CircularProgress size={24} /> : <Send />}
+            </IconButton>
+          )}
+        </Box>
       </Box>
     </>
   );

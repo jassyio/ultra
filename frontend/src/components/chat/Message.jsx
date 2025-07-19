@@ -22,14 +22,19 @@ const MessageBubble = styled(Box)(({ theme, 'data-is-own': isOwn }) => {
     borderRadius: isOwn
       ? `${theme.spacing(2)} ${theme.spacing(2)} ${theme.spacing(1)} ${theme.spacing(2)}`
       : `${theme.spacing(2)} ${theme.spacing(2)} ${theme.spacing(2)} ${theme.spacing(1)}`,
-    backgroundColor: isOwn
-      ? (isDark ? 'rgba(46,191,145,0.12)' : '#e7ffdb')
-      : theme.palette.background.paper,
-    color: theme.palette.text.primary,
+    background: isOwn
+      ? `linear-gradient(135deg, #8360c3 0%, #2ebf91 100%)`
+      : (isDark
+          ? 'rgba(255,255,255,0.06)'
+          : theme.palette.background.paper),
+    color: isOwn
+      ? '#fff'
+      : (isDark ? theme.palette.text.primary : theme.palette.text.primary),
     position: 'relative',
     wordBreak: 'break-word',
     boxShadow: '0 1px 0.5px rgba(11,20,26,.13)',
     alignSelf: isOwn ? 'flex-end' : 'flex-start',
+    transition: 'background 0.3s',
   };
 });
 

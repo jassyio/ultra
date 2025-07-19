@@ -118,10 +118,12 @@ const ChatPage = () => {
         display: "flex",
         flexDirection: "column",
         bgcolor: theme.palette.background.default,
+        // width: '100vw',
+        // overflowX: 'hidden',
       }}
     >
       {/* Top bar with title and menu */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, pt: 1 }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: '100%', pt: 1 }}>
         <TopNavbar
           title={selectedChat ? chatPartner?.name || "Chat" : "Ultra"}
           avatar={
@@ -177,6 +179,7 @@ const ChatPage = () => {
         </MenuItem>
       </Menu>
 
+      {/* Main chat content area, fill available space */}
       <Box 
         sx={{ 
           flex: 1, 
@@ -219,7 +222,7 @@ const ChatPage = () => {
         </Snackbar>
 
         {!selectedChat ? (
-          <Box sx={{ flex: 1, overflowY: "auto", p: 1, bgcolor: theme.palette.background.paper }}>
+          <Box sx={{ flex: 1, overflowY: "auto", p: 0, bgcolor: theme.palette.background.paper }}>
             {chats.length > 0 ? (
               chats.map((chat) => {
                 // Detect if this is a group (has members) or a direct chat (has participants)
@@ -248,11 +251,13 @@ const ChatPage = () => {
                       borderRadius: 1,
                       cursor: "pointer",
                       backgroundColor: "background.paper",
+                      border: `1px solid ${theme.palette.divider}`,
                       "&:hover": {
                         backgroundColor: "action.hover",
                       },
                       display: "flex",
                       alignItems: "center",
+                      mx: 0 // Remove side margin
                     }}
                   >
                     <Avatar
