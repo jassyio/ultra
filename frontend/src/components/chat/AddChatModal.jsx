@@ -50,7 +50,7 @@ export default function AddChatModal({ open, onClose }) {
     try {
       const token = localStorage.getItem("token");
       const { data } = await axios.get(
-        `http://localhost:3001/api/users/check?email=${trimmed}`,
+        `${import.meta.env.MODE === "production" ? "https://ultra-3il5.onrender.com" : "http://localhost:3001"}/api/users/check?email=${trimmed}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       

@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
           
           // Verify token with backend
           try {
-            const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://ultra-backend.vercel.app';
+            const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://ultra-3il5.onrender.com';
             await axios.get(`${backendUrl}/api/auth/verify`, {
               headers: { Authorization: `Bearer ${token}` }
             });

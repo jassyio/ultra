@@ -9,7 +9,7 @@ import { AuthContext } from "./AuthContext";
 import axios from "axios";
 
 export const ChatContext = createContext();
-const BACKEND_URL = "http://localhost:3001";
+const BACKEND_URL = import.meta.env.MODE === "production" ? "https://ultra-3il5.onrender.com" : "http://localhost:3001";
 
 export const ChatProvider = ({ children }) => {
   const { user } = useContext(AuthContext);

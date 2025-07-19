@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:3001/api/groups";
+const API_URL = import.meta.env.MODE === "production"
+  ? "https://ultra-3il5.onrender.com/api/groups"
+  : "http://localhost:3001/api/groups";
 
 const createGroup = (groupData) => {
   const token = localStorage.getItem("token");
@@ -20,7 +22,7 @@ const groupService = {
   addMember: async (groupId, userId) => {
     const token = localStorage.getItem("token");
     const response = await axios.post(
-      `http://localhost:3001/api/groups/${groupId}/members`,
+      `${import.meta.env.MODE === "production" ? "https://ultra-3il5.onrender.com" : "http://localhost:3001"}/api/groups/${groupId}/members`,
       { memberId: userId }, // Update field name if required
       { headers: { Authorization: `Bearer ${token}` } }
     );

@@ -32,7 +32,7 @@ const GroupInfo = () => {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          `http://localhost:3001/api/groups/${groupId}`,
+          `${import.meta.env.MODE === "production" ? "https://ultra-3il5.onrender.com" : "http://localhost:3001"}/api/groups/${groupId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setGroup(response.data.data); // Access the `data` property directly

@@ -8,7 +8,7 @@ export const SocketContext = createContext();
 
 const BACKEND_URL =
   import.meta.env.MODE === "production"
-    ? import.meta.env.VITE_BACKEND_URL_HOSTED
+    ? "https://ultra-3il5.onrender.com"
     : import.meta.env.VITE_BACKEND_URL_LOCAL;
 
 const handleLogin = async (credentials) => {

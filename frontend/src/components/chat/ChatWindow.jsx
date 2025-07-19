@@ -123,7 +123,7 @@ const ChatWindow = () => {
     try {
       const token = localStorage.getItem("token");
       const { data } = await axios.post(
-        `http://localhost:3001/api/messages/send`,
+        `${import.meta.env.MODE === "production" ? "https://ultra-3il5.onrender.com" : "http://localhost:3001"}/api/messages/send`,
         {
           chatId: selectedChat._id,
           sender: user.id,
